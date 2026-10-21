@@ -1,0 +1,169 @@
+/* Datos del Plan de calidad y pruebas FINTEC */
+
+exports.ATRIBUTOS = [
+  ['Seguridad','Crítico','Control de acceso por rol, bloqueo por intentos fallidos, cierre automático de sesión y verificación de cuenta bloqueada en cada transacción.',
+    '100 % de intentos de login tras bloqueo rechazados en 10 ejecuciones. Sesión cerrada automáticamente a 10 min ± 5 s de inactividad.'],
+  ['Fiabilidad','Crítico','El saldo disponible nunca queda en negativo y toda reversión restituye exactamente el valor original.',
+    '0 transacciones con saldo < 0 en una batería de 50 transferencias aleatorias. Diferencia 0 entre saldo antes y después de aplicar reversión.'],
+  ['Usabilidad','Medio','Mensajes de error claros y feedback inmediato (toast) para cada acción válida o inválida.',
+    '100 % de las acciones muestran toast o mensaje .err en ≤ 500 ms sobre los 27 casos de prueba.'],
+  ['Portabilidad','Medio','Diseño responsivo desde 1280×720 y compatible con las dos últimas versiones estables de Chrome, Firefox y Edge (RNF-03, RNF-04).',
+    '0 errores visuales o funcionales reportados sobre 15 pantallas verificadas en los 3 navegadores.'],
+  ['Mantenibilidad','Bajo','Lógica de negocio separable y testeable, con cobertura por pruebas unitarias de caja blanca.',
+    'Cobertura de ramas ≥ 80 % sobre la lógica de dominio extraída de Fintec.html. Medido: 84,09 % de ramas, 87,04 % de sentencias y 82,53 % de funciones (Vitest 3.2.4 + v8).']
+];
+
+exports.SQA = [
+  ['Requisitos','Revisión del documento de especificación v1 contra la entrevista con el cliente.','Equipo + docente',
+    'Cada necesidad expresada debe quedar como RF/RNF/RN con criterios de aceptación verificables.',
+    'Se detectaron 3 necesidades sin requisito formalizado (notificaciones, reportes descargables, dashboard contable). Se incorporaron RF-06, RF-07 y RF-08 en la versión corregida.'],
+  ['Diseño','Revisión de pantallas, navegación y flujos del prototipo.','Equipo',
+    'Cada RF tiene pantalla asociada; la navegación respeta roles.',
+    'OK tras corregir el control de rol en go().'],
+  ['Código','Revisión manual del prototipo HTML/JS a la luz de los RF/RN.','Equipo',
+    'Cada RF/RN tiene código asociado; cada camino de error registra motivo.',
+    '11 defectos encontrados (ver sección 6), todos corregidos en la iteración actual.'],
+  ['Pruebas','Diseño, revisión y ejecución de casos de prueba de caja negra y pruebas unitarias de caja blanca.','Equipo',
+    'Al menos un caso por RF crítico; cobertura de ramas de las funciones de dominio.','Ver secciones 4 a 7.']
+];
+
+exports.CASOS = [
+  // ID, Req, Tipo, Precondición, Entrada, Pasos, Resultado esperado, Escenario, Revisión
+  ['CP-01','RF-04 / Esc.1','Válido','María con disponible $2.450.000','Destino Laura, monto $100.000, nota "Prueba"','1. Login María. 2. Enviar. 3. Elegir Laura. 4. Monto 100.000. 5. Transferir',
+    'Movimiento Completada; disponible María = $2.350.000; disponible Laura = $3.900.000; alertas a ambos.','Esc.1','Aceptado'],
+  ['CP-02','RF-04 / Esc.1','Borde','María con disponible $2.450.000','Monto = $2.450.000','Igual a CP-01 con monto = disponible',
+    'Movimiento Completada; disponible María = $0.','Esc.1','Aceptado'],
+  ['CP-03','RF-04 / RN-01 / Esc.1','Inválido (saldo insuficiente)','María con disponible $2.450.000','Monto $5.000.000','Igual a CP-01 con monto > disponible',
+    'Movimiento Rechazada con motivo "Saldo insuficiente"; disponible María sin cambio; alerta en el panel.','Esc.1','Aceptado'],
+  ['CP-04','RF-04','Inválido (monto 0)','Usuario autenticado','Monto = 0','Transferir con monto 0',
+    'Mensaje "Escribe un monto mayor que cero"; sin movimiento registrado.','Esc.1 (excepción)','Aceptado'],
+  ['CP-05','RF-04','Inválido (negativo)','Usuario autenticado','Monto = -100','Transferir con monto negativo',
+    'Mensaje de error; sin movimiento registrado.','Esc.1 (excepción)','Aceptado'],
+  ['CP-06','RF-04 / RN-07','Inválido','Admin bloquea cuenta Carlos previo a la prueba','María → Carlos, $50.000','1. Admin bloquea a Carlos. 2. María intenta transferir a Carlos',
+    'Mensaje "La cuenta destino está bloqueada"; sin movimiento.','RN-07','Aceptado'],
+  ['CP-07','RF-04','Inválido','—','Cuenta destino inexistente (ID libre)','Transferir a un ID que no existe',
+    'Mensaje "Esa cuenta no existe"; sin movimiento.','Esc.1 (excepción)','Aceptado'],
+  ['CP-08','RN-07','Inválido','María autenticada','Admin bloquea a María desde panel','1. María logueada. 2. Admin bloquea su cuenta',
+    'La sesión de María se cierra y es redirigida al login con mensaje.','RN-07','Ajustado — se extendió también a pagos y bolsillos'],
+  ['CP-09','RF-02','Válido','Cliente registrado','Doc 1023456789, pass maria123','Login',
+    'Redirige a dashboard de usuario.','Esc.2','Aceptado'],
+  ['CP-10','RF-02','Válido','Admin registrado','Doc admin, pass admin123','Login',
+    'Redirige al panel admin.','Esc.2','Aceptado'],
+  ['CP-11','RF-02','Válido','Contable registrado','Doc contable, pass conta123','Login',
+    'Redirige al panel contable.','Esc.2','Aceptado'],
+  ['CP-12','RF-02','Inválido (pass mal)','—','Doc válido, pass incorrecta','Login',
+    'Mensaje genérico "Usuario o contraseña incorrectos" (no revela cuál).','Esc.2','Aceptado'],
+  ['CP-13','RF-02','Inválido (doc inexistente)','—','Doc inexistente, cualquier pass','Login',
+    'Mismo mensaje genérico, incrementa contador para ese doc.','Esc.2','Aceptado'],
+  ['CP-14','RNF-02 / Esc.2','Borde (umbral de bloqueo)','—','5 intentos fallidos con el mismo documento','Repetir login erróneo 5 veces',
+    'Cuenta queda bloqueada 15 min para ese documento específico (no global).','Esc.2 (excepción)','Aceptado'],
+  ['CP-15','RN-07','Inválido','Admin bloqueó la cuenta','Doc y pass correctos','Login tras bloqueo',
+    'Rechazo con mensaje "cuenta bloqueada por el administrador".','RN-07','Aceptado'],
+  ['CP-16','RF-01 / Esc.3','Válido','—','Nombre, doc nuevo, tipo CC, fecha 1995-05-10, correo válido, pass ≥ 8','Registrar',
+    'Cuenta creada con saldo $0 y disponible para login.','Esc.3','Aceptado'],
+  ['CP-17','RF-01 / Esc.3','Inválido (duplicado)','Doc 1023456789 ya existe','Mismo doc','Registrar',
+    'Mensaje "El documento ya se encuentra registrado"; no se crea cuenta.','Esc.3 (excepción)','Aceptado'],
+  ['CP-18','RF-01','Inválido (pass corta)','—','Pass = "abc123" (6 chars)','Registrar',
+    'Mensaje "al menos 8 caracteres"; no se crea cuenta.','Esc.3','Aceptado'],
+  ['CP-19','RF-01','Inválido (correo mal)','—','Correo = "no-es-correo"','Registrar',
+    'Mensaje "formato de correo inválido".','Esc.3','Aceptado'],
+  ['CP-20','RF-01','Borde (edad mínima)','—','Fecha de nacimiento que da 17 años','Registrar',
+    'Mensaje "mayor de 18 años"; no se crea cuenta.','Esc.3','Aceptado'],
+  ['CP-21','RF-01','Faltante (nombre)','—','Nombre vacío','Registrar',
+    'Mensaje "nombre, documento y contraseña son obligatorios".','Esc.3','Aceptado'],
+  ['CP-22','RF-01','Inválido (formato doc)','—','Doc con espacios/símbolos','Registrar',
+    'Mensaje "documento inválido".','Esc.3','Aceptado'],
+  ['CP-23','RF-05 / RN-05 / Esc.4','Válido','Transferencia Completada existente','ID del movimiento','1. Admin abre panel. 2. Devolver',
+    'Reversión Completada enlazada al original; saldos restablecidos; alerta a ambos usuarios.','Esc.4','Aceptado'],
+  ['CP-24','RF-05 / RN-05 / Esc.4','Inválido (ya revertida)','Movimiento ya revertido','ID del movimiento','Devolver otra vez',
+    'Botón deshabilitado o mensaje "Este movimiento ya fue revertido".','Esc.4 (excepción)','Ajustado — se añadió atributo disabled al botón'],
+  ['CP-25','RF-05','Inválido (saldo destino)','Destino con saldo < monto original','ID del movimiento','Devolver',
+    'Rechazo con mensaje "no tiene saldo suficiente para devolver"; no se mueve dinero.','RF-05','Aceptado'],
+  ['CP-26','RF-04 / RF-05','Válido (nuevo estado)','Transferencia Completada','ID del movimiento','Admin → Cancelar',
+    'Se crea movimiento Cancelación con estado "Cancelada" enlazado al original; saldos restablecidos.','RF-04','Aceptado'],
+  ['CP-27','RF-03 / RN-02','Válido','María con bolsillos "Vacaciones $800k" y "Emergencias $350k"','—','Ir a Inicio',
+    'Total mostrado = disponible + $1.150.000 (suma de bolsillos). Los bolsillos no suman al disponible.','RF-03','Aceptado'],
+  ['CP-28','RN-02','Válido','María con disponible y bolsillo','Aportar $200.000 a Vacaciones y luego retirar $100.000','En Bolsillos: aportar, luego retirar',
+    'Disponible decrece $200k, bolsillo sube $200k; retiro invierte parcialmente.','RF-03','Aceptado'],
+  ['CP-29','RN-02','Inválido','María con disponible $2.450.000','Aportar $5.000.000','Aportar a bolsillo',
+    'Mensaje "No tienes ese disponible"; sin cambio.','RF-03','Aceptado'],
+  ['CP-30','RF-06 CA-06.2','Válido','Usuario autenticado con pass actual conocida','Pass actual correcta + nueva ≥ 8 + confirmación igual','En Alertas: cambiar contraseña',
+    'Pass actualizada; se genera alerta "Contraseña modificada el <fecha hora>".','RF-06','Aceptado'],
+  ['CP-31','RF-06','Inválido','Usuario autenticado','Pass actual incorrecta','Cambiar contraseña',
+    'Mensaje "la contraseña actual no coincide"; sin cambio.','RF-06','Aceptado'],
+  ['CP-32','RF-06','Inválido (igual)','Usuario autenticado','Pass nueva = pass actual','Cambiar contraseña',
+    'Mensaje "debe ser distinta a la actual"; sin cambio.','RF-06','Aceptado'],
+  ['CP-33','RF-07 CA-07.1','Válido','Usuario con movimientos en el mes','Rango = mes actual','Exportar CSV',
+    'Se descarga fintec-movimientos.csv con cabecera y 1+ filas en el formato: ID;Fecha;Tipo;Origen;Destino;Valor;Estado.','RF-07','Aceptado'],
+  ['CP-34','RF-07','Borde (rango vacío)','Usuario sin movimientos en el rango','Rango = próximo año','Exportar CSV',
+    'Toast "No hay movimientos en ese rango"; no se descarga archivo.','RF-07','Aceptado'],
+  ['CP-35','RF-08 CA-08.1/8.2','Válido','Contable con historial sembrado','Rango = mes actual','Dashboard contable → aplicar rango',
+    'Se muestran Ingresos, Egresos y Saldo neto correctos; desglose por tipo.','RF-08','Aceptado'],
+  ['CP-36','Seguridad / Rol','Inválido (bypass)','María autenticada','Ejecutar go("a-panel") en consola','Intentar acceder al panel admin siendo usuario',
+    'Redirige a u-inicio y muestra toast "No tienes acceso a esa sección".','RF-02/RN-06','Ajustado — añadido mapa ROL_PANTALLA'],
+  ['CP-37','RNF-01','Borde (inactividad)','Usuario autenticado','10 min sin interacción','Dejar sesión inactiva 10 min',
+    'Toast "Sesión cerrada por inactividad" y vuelta al login.','RNF-01','Aceptado']
+];
+
+exports.DEFECTOS = [
+  ['D-01','CP-14','Bloqueo tras 5 intentos era una variable global; bloqueaba el login de todas las cuentas, no solo de la que falló.',
+    '1. Fallar 5 veces con doc A. 2. Intentar login válido con doc B. Esperado: B entra. Obtenido: B también estaba bloqueado.','Alta','Corregido (intentosPorDoc/bloqueoPorDoc)'],
+  ['D-02','CP-19 / CP-20','El registro aceptaba cualquier correo y cualquier fecha de nacimiento sin validar edad mínima.',
+    'Registrar con correo "a" y fecha 2015-01-01. Esperado: dos errores. Obtenido: cuenta creada.','Media','Corregido (regex de correo y cálculo de edad ≥ 18)'],
+  ['D-03','CP-36','Un usuario con sesión podía abrir el panel admin ejecutando go("a-panel") en consola.',
+    '1. Login María. 2. En DevTools: go("a-panel"). Esperado: redirección. Obtenido: panel admin visible.','Crítica','Corregido (mapa ROL_PANTALLA en go())'],
+  ['D-04','CP-24','El botón Devolver seguía habilitado tras revertir y mostraba error en lugar de impedir el clic.',
+    'Devolver una transferencia dos veces seguidas. Esperado: segundo clic imposible. Obtenido: aparece error.','Baja','Corregido (atributo disabled cuando m.revertida)'],
+  ['D-05','CP-37','No existía cierre de sesión por inactividad (RNF-01).',
+    'Login y dejar la pestaña 10 min inactiva. Esperado: logout automático. Obtenido: la sesión seguía abierta.','Alta','Corregido (temporizador global de 10 min)'],
+  ['D-06','CP-08','Si el admin bloqueaba una cuenta activa, el usuario seguía pudiendo transferir hasta cerrar sesión.',
+    '1. María logueada. 2. Admin la bloquea. 3. María intenta transferir. Esperado: logout. Obtenido: transferencia procesada.','Alta','Corregido (chequeo de estado en pagar, aportar, retirar, crearBolsillo, go() y alternarBloqueo)'],
+  ['D-07','CP-23 (negativa)','Admin no podía buscar usuarios por correo (RF-05 CA-05.1).',
+    'En el buscador escribir el correo de un usuario. Esperado: aparece. Obtenido: no filtra.','Media','Corregido (incluido correo en filtro + label)'],
+  ['D-08','CP-30 / CP-31 / CP-32','No existía funcionalidad de cambio de contraseña ni la notificación asociada (RF-06 CA-06.2).',
+    'Buscar la opción en el app. Esperado: existe. Obtenido: no existe.','Alta','Corregido (card en Alertas + función cambiarPassword con alerta fechada)'],
+  ['D-09','CP-35','Dashboard contable sin filtro por fecha ni métricas de ingresos/egresos/saldo neto (RF-08 CA-08.1).',
+    'Abrir el panel. Esperado: filtro + 3 totales. Obtenido: solo totales acumulados sin filtro.','Media','Corregido (ctbRango + ingresos/egresos/neto)'],
+  ['D-10','CP-26','No existía el estado "Cancelada" ni la acción Cancelar del admin (RF-04 CA-04.1).',
+    'Buscar en el panel admin la opción Cancelar. Esperado: existe. Obtenido: solo Devolver.','Media','Corregido (función cancelar + estado Cancelada en filaMov)'],
+  ['D-11','CP-06','Pagos y bolsillos no verificaban si la cuenta está bloqueada (RN-07).',
+    'Bloquear cuenta y tratar de pagar un convenio. Esperado: rechazo. Obtenido: pago procesado.','Media','Corregido (guard en pagar, aportar, retirar, crearBolsillo)']
+];
+
+exports.TRAZABILIDAD = [
+  ['RF-01','CP-16, CP-17, CP-18, CP-19, CP-20, CP-21, CP-22','D-02','Validación completa de datos de registro','7/7 OK (CP-16 a CP-22)'],
+  ['RF-02','CP-09, CP-10, CP-11, CP-12, CP-13','D-01','3 caminos de login + mensaje genérico','5/5 OK (CP-09 a CP-13)'],
+  ['RF-03','CP-27, CP-28, CP-29','—','Total = disponible + bolsillos; bolsillos no mezclan','3/3 OK (CP-27 a CP-29)'],
+  ['RF-04','CP-01 a CP-07, CP-26','D-10','Estados y reglas de monto','8/8 OK (CP-01 a CP-07, CP-26)'],
+  ['RF-05','CP-23, CP-24, CP-25, CP-26','D-04, D-07, D-10','Admin busca, devuelve y cancela','5/5 OK (CP-23, CP-23b, CP-24, CP-25, CP-26)'],
+  ['RF-06','CP-30, CP-31, CP-32','D-08','Cambio de contraseña + notificación','3/3 OK (CP-30 a CP-32)'],
+  ['RF-07','CP-33, CP-34','—','Exportar CSV por rango','2/2 OK (CP-33, CP-34)'],
+  ['RF-08','CP-35','D-09','Dashboard con filtro + métricas','2/2 OK (CP-35, CP-35b)'],
+  ['RNF-01','CP-37','D-05','Autologout 10 min','1/1 OK (CP-37)'],
+  ['RNF-02','CP-14','D-01','Bloqueo 15 min por cuenta','1/1 OK (CP-14)'],
+  ['RN-07','CP-06, CP-08, CP-15','D-06, D-11','Cuenta bloqueada no transacciona','3/3 OK (CP-06, CP-08, CP-15)'],
+  ['Rol / seguridad','CP-36, CP-36b','D-03','Validación de rol en navegación','2/2 OK (CP-36, CP-36b)']
+];
+
+/* Resultados de la ejecucion real de la bateria (evidencia en /evidencia) */
+exports.EJECUCION = {
+  fecha: '20/10/2026 19:56',
+  entorno: 'Windows 11 · Node v24.11.0 · Vitest 3.2.4 · jsdom 26.1.0 · entorno de pruebas del equipo',
+  comando: 'npm test  /  npm run cobertura',
+  disenados: 37,
+  ejecutados: 40,
+  aprobados: 40,
+  fallidos: 0,
+  cobertura: { sentencias: '87,04 %', ramas: '84,09 %', funciones: '82,53 %' },
+  nota: 'Los 37 casos disenados se ejecutaron como 40 pruebas automatizadas: CP-23, CP-35 y CP-36 se '
+      + 'desdoblaron en dos pruebas cada uno (CP-23b busqueda por correo, CP-35b filtro de rango y '
+      + 'CP-36b acceso del rol contable) para aislar la condicion verificada.'
+};
+
+/* Prueba de mutacion: se rompe a proposito una rama del producto y se verifica
+   que la bateria la detecta. Evidencia en /evidencia/mutacion-output.txt */
+exports.MUTACION = [
+  ['M-01','RN-01 control de saldo insuficiente','if (monto > u.disponible)  ->  if (false)','CP-03','Detectada: 1 fallo'],
+  ['M-02','RNF-02 bloqueo por intentos fallidos','if (intentosPorDoc[doc] >= MAX_INTENTOS)  ->  if (false)','CP-14','Detectada: 1 fallo'],
+  ['M-03','RN-05 marca de movimiento revertido','m.revertida = true  ->  m.revertida = false','CP-24','Detectada: 1 fallo']
+];

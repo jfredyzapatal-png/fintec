@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FINTEC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --navy:#0B1E46; --blue:#1757D8; --sky:#27A6E6;
+  --bg:#F3F7FC; --card:#FFFFFF; --line:#E3E9F5;
+  --ink:#10213F; --dim:#5C6B8C; --mint:#1757D8;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",sans-serif;line-height:1.5}
+h1,h2,h3,.d{font-family:Syne,sans-serif}
+.proto{background:var(--navy);color:#C9DDFF;font-size:12px;padding:8px 16px;display:flex;justify-content:space-between}
+.proto a{color:#8FC6FF}
+.screen{display:none;min-height:100vh}.screen.active{display:block}
+
+/* ---- Landing (página pública) ---- */
+.topnav{display:flex;justify-content:space-between;align-items:center;padding:18px 32px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#ffffffee;backdrop-filter:blur(8px);z-index:5}
+.logo{font-family:Syne,sans-serif;font-weight:800;font-size:22px;background:linear-gradient(135deg,var(--sky),var(--navy));-webkit-background-clip:text;background-clip:text;color:transparent}
+.topnav nav{display:flex;align-items:center;gap:4px}
+.topnav nav button{background:transparent;border:0;color:var(--dim);padding:10px 14px;border-radius:10px;cursor:pointer;font:inherit;font-size:14px}
+.topnav nav button:hover{background:#EEF4FF;color:var(--navy)}
+.topnav .cta{background:var(--blue);color:#fff;font-weight:600;padding:10px 18px;border-radius:10px;border:0;cursor:pointer;font:inherit}
+
+.hero{padding:64px 32px 40px;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center}
+.hero h1{font-size:44px;line-height:1.08;margin:0 0 16px}
+.hero p.lead{color:var(--dim);font-size:17px;max-width:46ch;margin:0 0 24px}
+.hero .row{margin-top:4px}
+.badge{display:inline-flex;align-items:center;gap:8px;background:#EAF3FF;color:var(--blue);border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;margin-bottom:18px}
+
+.stats{max-width:1180px;margin:0 auto;padding:0 32px 56px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.stat{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+.stat svg{flex:none}
+.stat strong{display:block;font-size:14px}
+.stat span{color:var(--dim);font-size:13px}
+
+.section-head{max-width:1180px;margin:0 auto;padding:0 32px;text-align:left}
+.section-head h2{font-size:28px;margin:0 0 6px}
+.section-head p{color:var(--dim);margin:0 0 28px;max-width:60ch}
+
+.products{max-width:1180px;margin:0 auto 56px;padding:0 32px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.product{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.product .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#EAF3FF,#DCEBFF)}
+.product h3{margin:4px 0 0;font-size:18px}
+.product p{color:var(--dim);font-size:14px;margin:0;flex:1}
+.product .tag{font-size:12px;color:var(--blue);font-weight:600}
+.product .link{background:transparent;border:1px solid var(--line);color:var(--navy);padding:9px 14px;border-radius:10px;cursor:pointer;font:inherit;font-weight:600;text-align:left}
+.product .link:hover{background:#EEF4FF}
+
+.sim{max-width:1180px;margin:0 auto 56px;padding:0 32px}
+.sim-card{background:linear-gradient(135deg,#0B1E46,#1757D8);border-radius:28px;padding:36px;display:grid;grid-template-columns:1fr 1fr;gap:32px;color:#fff}
+.sim-card h2{color:#fff;font-size:26px;margin:0 0 8px}
+.sim-card p{color:#C9DDFF;margin:0 0 20px;font-size:14px}
+.sim-card input[type=range]{width:100%;accent-color:#fff}
+.sim-row{display:flex;justify-content:space-between;font-size:13px;color:#EAF3FF;margin-top:4px}
+.sim-result{background:#ffffff1a;border:1px solid #ffffff33;border-radius:18px;padding:22px}
+.sim-result .big{font-size:34px;margin:4px 0}
+.sim-note{font-size:11px;color:#C9DDFF;margin-top:14px}
+
+.testimonials{max-width:1180px;margin:0 auto 64px;padding:0 32px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.testi{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+.testi p{font-size:14px;color:var(--ink);margin:0 0 12px}
+.testi .who{font-size:12px;color:var(--dim)}
+
+footer.site{border-top:1px solid var(--line);padding:28px 32px;text-align:center;color:var(--dim);font-size:13px}
+
+/* ---- Auth ---- */
+.auth{min-height:100vh;display:grid;place-items:center;padding:40px 16px;background:radial-gradient(circle at 20% 15%,#DCEBFF,transparent 42%),var(--bg)}
+.box{width:min(440px,100%);background:var(--card);border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:0 20px 50px -30px rgba(11,30,70,.3)}
+label{display:block;font-size:12px;color:var(--dim);margin:12px 0 6px}
+input,select,textarea{width:100%;background:#F8FAFD;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:12px;font:inherit}
+.btn{border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:600;cursor:pointer}
+.mint{background:var(--mint);color:#fff}.ghost{background:transparent;border:1px solid var(--line);color:var(--navy)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{background:#EEF4FF;border:1px solid var(--line);color:var(--navy);border-radius:999px;padding:8px 12px;cursor:pointer;font-size:12px}
+
+/* ---- App interno ---- */
+header.app{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#ffffffee;backdrop-filter:blur(10px);z-index:5}
+nav button{background:transparent;border:0;color:var(--dim);margin-right:6px;padding:8px 10px;border-radius:10px;cursor:pointer;font:inherit}
+nav button.on,nav button:hover{color:var(--navy);background:#EEF4FF}
+.wrap{padding:24px;max-width:1180px;margin:0 auto}
+.hero-card{background:linear-gradient(135deg,#F2F7FF,#EAF2FF);border:1px solid var(--line);border-radius:28px;padding:28px;display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
+.big{font-size:42px;margin:8px 0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+.promo{background:linear-gradient(135deg,#0B1E46,#1757D8);color:#fff;border-radius:18px;padding:18px}
+.promo p{color:#C9DDFF;font-size:13px;margin:4px 0 12px}
+.promo .btn{background:#fff;color:var(--navy)}
+table{width:100%;border-collapse:collapse;font-size:14px} th,td{padding:10px 6px;border-bottom:1px solid var(--line);text-align:left}
+.st{font-size:11px;padding:3px 8px;border-radius:999px}.ok{background:#E6F7EF;color:#157347}.bad{background:#FDEAEA;color:#C23434}.warn{background:#FFF4E0;color:#B36B00}
+.err{display:none;background:#FDEAEA;color:#C23434;border-radius:10px;padding:10px 12px;font-size:13px;margin:12px 0 0}
+.err.on{display:block}
+.toast{display:none;position:fixed;bottom:16px;right:16px;background:var(--navy);color:#fff;padding:12px 16px;border-radius:12px;font-weight:600}
+@media(max-width:900px){.hero,.hero-card,.grid,.products,.stats,.testimonials,.sim-card{grid-template-columns:1fr} nav{display:flex;flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<div class="proto"><span>Prototipo B · FINTEC · maqueta visual, proyecto académico — no es una institución financiera real</span><span>maqueta de una sola página</span></div>
+<div class="toast" id="toast"></div>
+
+<!-- ===================== LANDING ===================== -->
+<section class="screen active" id="home">
+  <header class="topnav">
+    <div class="logo">FINTEC</div>
+    <nav>
+      <button onclick="go('home')">Inicio</button>
+      <button onclick="document.getElementById('productos').scrollIntoView({behavior:'smooth'})">Productos</button>
+      <button onclick="go('registro')">Abrir cuenta</button>
+      <button class="cta" onclick="go('login')">Ingresar</button>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <div>
+      <div class="badge">Banca digital · disponible 24/7</div>
+      <h1 class="d">Tu plata, organizada y bajo control.</h1>
+      <p class="lead">Transfiere, guarda en bolsillos y paga tus facturas desde un solo lugar. Abre tu cuenta en minutos, sin filas ni papeleo.</p>
+      <div class="row">
+        <button class="btn mint" onclick="go('registro')">Abrir cuenta gratis</button>
+        <button class="btn ghost" onclick="go('login')">Ya tengo cuenta</button>
+      </div>
+    </div>
+    <svg viewBox="0 0 420 420" width="100%" role="img" aria-label="Vista de la app FINTEC en el celular">
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#27A6E6"/><stop offset="1" stop-color="#0B1E46"/>
+        </linearGradient>
+      </defs>
+      <rect x="110" y="20" width="200" height="380" rx="34" fill="#fff" stroke="#E3E9F5" stroke-width="2"/>
+      <rect x="126" y="50" width="168" height="130" rx="18" fill="url(#g1)"/>
+      <text x="142" y="90" fill="#C9DDFF" font-family="IBM Plex Sans" font-size="11">Disponible ahora</text>
+      <text x="142" y="118" fill="#fff" font-family="Syne" font-weight="700" font-size="22">$2.450.000</text>
+      <text x="142" y="140" fill="#C9DDFF" font-family="IBM Plex Sans" font-size="10">Bolsillos: $1.150.000</text>
+      <rect x="126" y="196" width="78" height="60" rx="14" fill="#EAF3FF"/>
+      <rect x="212" y="196" width="78" height="60" rx="14" fill="#EAF3FF"/>
+      <text x="138" y="222" font-family="IBM Plex Sans" font-size="10" fill="#1757D8">Vacaciones</text>
+      <text x="138" y="240" font-family="Syne" font-weight="700" font-size="12" fill="#0B1E46">$800.000</text>
+      <text x="224" y="222" font-family="IBM Plex Sans" font-size="10" fill="#1757D8">Emergencias</text>
+      <text x="224" y="240" font-family="Syne" font-weight="700" font-size="12" fill="#0B1E46">$350.000</text>
+      <rect x="126" y="272" width="168" height="40" rx="12" fill="#F8FAFD" stroke="#E3E9F5"/>
+      <text x="138" y="297" font-family="IBM Plex Sans" font-size="11" fill="#5C6B8C">Enviar a Laura Díaz · $180.000</text>
+      <rect x="126" y="326" width="168" height="40" rx="12" fill="#F8FAFD" stroke="#E3E9F5"/>
+      <text x="138" y="351" font-family="IBM Plex Sans" font-size="11" fill="#5C6B8C">Pago EPM · $95.400</text>
+      <circle cx="330" cy="70" r="14" fill="#DCEBFF"/>
+      <circle cx="350" cy="340" r="9" fill="#27A6E6"/>
+    </svg>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M3 12l7-7 2 2-5 5 5 5-2 2-7-7z" fill="#1757D8"/><path d="M11 12l7-7 2 2-5 5 5 5-2 2-7-7z" fill="#27A6E6"/></svg>
+      <div><strong>Transferencias en segundos</strong><span>Entre cuentas FINTEC y a otros bancos, sin horarios.</span></div></div>
+    <div class="stat"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#1757D8" stroke-width="2"/><path d="M8 12h8M12 8v8" stroke="#27A6E6" stroke-width="2"/></svg>
+      <div><strong>Bolsillos de ahorro</strong><span>Separa plata para metas sin tocar tu saldo disponible.</span></div></div>
+    <div class="stat"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2" stroke="#1757D8" stroke-width="2"/><path d="M3 10h18" stroke="#27A6E6" stroke-width="2"/></svg>
+      <div><strong>Todo desde la app</strong><span>Pagos, reportes y notificaciones sin ir a una sucursal.</span></div></div>
+  </div>
+
+  <div class="section-head" id="productos">
+    <h2 class="d">Hecho para tus metas</h2>
+    <p>Elige cómo quieres mover, guardar o pedir tu dinero. Cada producto se administra desde tu cuenta, sin costos ocultos.</p>
+  </div>
+  <div class="products">
+    <div class="product">
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 10c0-3 2.5-5 6-5h3l3 2v3l-3 1-1 3H8l-1-2H5a2 2 0 010-4" stroke="#1757D8" stroke-width="1.6"/><circle cx="16" cy="7" r=".8" fill="#1757D8"/></svg></div>
+      <span class="tag">Ahorro</span>
+      <h3>Bolsillos de ahorro</h3>
+      <p>Crea tantos bolsillos como metas tengas — vacaciones, emergencias, estudio — y mueve plata entre ellos cuando quieras.</p>
+      <button class="link" onclick="go('login')">Crear un bolsillo</button>
+    </div>
+    <div class="product">
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="#1757D8" stroke-width="1.6"/><path d="M3 10.5h18" stroke="#27A6E6" stroke-width="1.6"/><rect x="6" y="14" width="5" height="2" rx="1" fill="#27A6E6"/></svg></div>
+      <span class="tag">Crédito</span>
+      <h3>Crédito libre inversión</h3>
+      <p>Simula una cuota desde $500.000 y a tu medida, sin salir de la app. Desembolso a tu cuenta FINTEC.</p>
+      <button class="link" onclick="document.getElementById('simulador').scrollIntoView({behavior:'smooth'})">Simular cuota</button>
+    </div>
+    <div class="product">
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4v5c0 5-3.4 8.3-8 9-4.6-.7-8-4-8-9V7l8-4z" stroke="#1757D8" stroke-width="1.6"/><path d="M9 12l2 2 4-4" stroke="#27A6E6" stroke-width="1.6"/></svg></div>
+      <span class="tag">Pagos</span>
+      <h3>Pagos y convenios</h3>
+      <p>Paga servicios, universidad y convenios registrados en segundos, con comprobante inmediato.</p>
+      <button class="link" onclick="go('login')">Ver convenios</button>
+    </div>
+  </div>
+
+  <div class="sim" id="simulador">
+    <div class="sim-card">
+      <div>
+        <h2 class="d">Simula tu crédito</h2>
+        <p>Mueve el monto y el plazo para ver una cuota aproximada.</p>
+        <label for="monto" style="color:#C9DDFF">Monto: <strong id="montoLbl">$5.000.000</strong></label>
+        <input type="range" id="monto" min="500000" max="20000000" step="100000" value="5000000" oninput="simular()" />
+        <div class="sim-row"><span>$500.000</span><span>$20.000.000</span></div>
+        <label for="plazo" style="color:#C9DDFF;margin-top:18px">Plazo: <strong id="plazoLbl">24 meses</strong></label>
+        <input type="range" id="plazo" min="12" max="48" step="12" value="24" oninput="simular()" />
+        <div class="sim-row"><span>12 meses</span><span>48 meses</span></div>
+      </div>
+      <div class="sim-result">
+        <span style="color:#C9DDFF;font-size:13px">Cuota mensual aproximada</span>
+        <div class="d big" id="cuota">$258.404</div>
+        <button class="btn" style="background:#fff;color:var(--navy)" onclick="go('registro')">Abrir cuenta para solicitarlo</button>
+        <p class="sim-note">Calculado a una tasa fija de 1,8% mensual (~23,9% E.A.). Valor simulado con fines ilustrativos para este prototipo académico; no constituye una oferta real de crédito.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-head"><h2 class="d">Gente que ya lo usa</h2></div>
+  <div class="testimonials">
+    <div class="testi"><p>Tener los bolsillos separados me ayudó a no gastarme lo que estaba ahorrando para el semestre.</p><div class="who">Mariana T. · estudiante</div></div>
+    <div class="testi"><p>Pago los convenios de la casa en menos de un minuto, sin entrar a otra página.</p><div class="who">Daniel R. · independiente</div></div>
+    <div class="testi"><p>Me gusta que me avisa apenas me llega o sale una transferencia.</p><div class="who">Camila P. · comerciante</div></div>
+  </div>
+
+  <footer class="site">FINTEC — proyecto académico de levantamiento y especificación de requisitos · © 2026</footer>
+</section>
+
+<!-- ===================== AUTH ===================== -->
+<section class="screen" id="login">
+  <div class="auth"><div class="box">
+    <div class="logo" style="font-size:18px">FINTEC</div>
+    <h1 class="d" style="margin:10px 0 6px;font-size:26px">Bienvenido de vuelta</h1>
+    <p style="color:var(--dim);margin-top:0">Ingresa con tu documento y contraseña. Tras 5 intentos fallidos, bloqueamos la cuenta 15 minutos.</p>
+    <label for="lg-doc">Usuario o documento</label><input id="lg-doc" name="documento" autocomplete="username" placeholder="admin" onkeydown="if(event.key==='Enter')entrar()" />
+    <label for="lg-pass">Contraseña</label><input id="lg-pass" name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')entrar()" />
+    <p id="lg-error" class="err" role="alert" aria-live="polite"></p>
+    <div class="row"><button class="btn mint" onclick="entrar()">Entrar</button><button class="btn ghost" onclick="go('registro')">Registrarme</button></div>
+    <p style="color:var(--dim);font-size:12px;margin-top:18px">Demo por rol · rellena las credenciales</p>
+    <div class="row">
+      <button class="chip" onclick="rellenar('1023456789','maria123')">Usuario</button>
+      <button class="chip" onclick="rellenar('admin','admin123')">Admin</button>
+      <button class="chip" onclick="rellenar('contable','conta123')">Contable</button>
+    </div>
+    <p style="margin-top:18px"><button class="ghost btn" style="width:100%" onclick="go('home')">← Volver al inicio</button></p>
+  </div></div>
+</section>
+
+<section class="screen" id="registro">
+  <div class="auth"><div class="box">
+    <h2 class="d">Crear cuenta</h2>
+    <p style="color:var(--dim)">Se activa al instante, con saldo disponible en $0. Documento único.</p>
+    <label for="rg-nombre">Nombre</label><input id="rg-nombre" name="nombre" value="María Gómez Restrepo" />
+    <label for="rg-tipo">Tipo / documento</label>
+    <div class="row"><select id="rg-tipo" name="tipo" style="flex:1"><option>CC</option><option>CE</option><option>PA</option></select><input aria-label="Número de documento" name="documento" style="flex:2" value="1023456789" /></div>
+    <label for="rg-nac">Nacimiento</label><input id="rg-nac" name="nacimiento" type="date" value="1996-04-12" />
+    <label for="rg-correo">Correo</label><input id="rg-correo" name="correo" type="email" value="maria.gomez@correo.com" />
+    <label for="rg-pass">Contraseña</label><input id="rg-pass" name="password" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" />
+    <div class="row"><button class="btn mint" onclick="ping('Cuenta activada');go('login')">Activar</button><button class="btn ghost" onclick="go('login')">Volver</button></div>
+  </div></div>
+</section>
+
+<!-- ===================== APP ===================== -->
+<section class="screen" id="u-inicio">
+  <header class="app" id="h-u"></header>
+  <div class="wrap">
+    <div class="hero-card">
+      <div>
+        <div style="color:var(--dim)">Disponible ahora</div>
+        <div class="d big">$2.450.000</div>
+        <div style="color:var(--dim)">Total con bolsillos: $3.600.000 · los bolsillos no se transfieren directo</div>
+        <div class="row">
+          <button class="btn mint" onclick="go('u-transferir')">Enviar</button>
+          <button class="btn ghost" onclick="go('u-bolsillos')">Bolsillos</button>
+          <button class="btn ghost" onclick="go('u-pagos')">Pagar</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="color:var(--dim)">Actividad</div>
+        <p>TX-8841 enviada · $180.000 · Completada</p>
+        <p>TX-8812 rechazada · saldo insuficiente</p>
+        <p>Contraseña actualizada · 10/09 07:44</p>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="card"><div style="color:var(--dim)">Vacaciones</div><div class="d" style="font-size:28px">$800.000</div></div>
+      <div class="card"><div style="color:var(--dim)">Emergencias</div><div class="d" style="font-size:28px">$350.000</div></div>
+      <div class="promo"><div style="font-weight:700">¿Necesitas un crédito?</div><p>Simula tu cuota de libre inversión en minutos.</p><button class="btn" onclick="go('home');setTimeout(()=>document.getElementById('simulador').scrollIntoView({behavior:'smooth'}),50)">Simular ahora</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="u-transferir">
+  <header class="app"></header>
+  <div class="wrap" style="max-width:640px">
+    <h2 class="d">Enviar dinero</h2>
+    <div class="card">
+      <label for="tr-cuenta">Cuenta destino</label><input id="tr-cuenta" name="cuenta" value="009-441-220" />
+      <label for="tr-monto">Monto</label><input id="tr-monto" name="monto" inputmode="numeric" value="180000" />
+      <label for="tr-nota">Nota</label><textarea id="tr-nota" name="nota" rows="2">Arriendo</textarea>
+      <div class="row"><button class="btn mint" onclick="ping('Completada · aviso a ambos usuarios')">Transferir</button></div>
+      <p style="color:var(--dim);font-size:13px">Si supera el disponible: «Saldo insuficiente» y estado Rechazada, sin mover saldos.</p>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="u-bolsillos">
+  <header class="app"></header>
+  <div class="wrap">
+    <h2 class="d">Bolsillos</h2>
+    <div class="grid">
+      <div class="card"><h3>Vacaciones</h3><div class="d big" style="font-size:32px">$800.000</div><div class="row"><button class="chip">Aportar</button><button class="chip">A disponible</button></div></div>
+      <div class="card"><h3>Emergencias</h3><div class="d big" style="font-size:32px">$350.000</div><div class="row"><button class="chip">Aportar</button><button class="chip">A disponible</button></div></div>
+      <div class="card"><h3>Nuevo</h3><label for="bl-nombre">Nombre del bolsillo</label><input id="bl-nombre" name="bolsillo" placeholder="Ej. Estudio" /><button class="btn mint" style="margin-top:12px">Crear</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="u-pagos">
+  <header class="app"></header>
+  <div class="wrap" style="max-width:560px">
+    <h2 class="d">Pagar</h2>
+    <div class="card">
+      <label for="pg-convenio">Convenio</label><select id="pg-convenio" name="convenio"><option>EPM</option><option>Universidad</option></select>
+      <label for="pg-ref">Referencia</label><input id="pg-ref" name="referencia" value="10993821" />
+      <label for="pg-valor">Valor</label><input id="pg-valor" name="valor" inputmode="numeric" value="95400" />
+      <div class="row"><button class="btn mint" onclick="ping('Pago Completado TX-8902')">Confirmar pago</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="u-movimientos">
+  <header class="app"></header>
+  <div class="wrap">
+    <h2 class="d">Movimientos</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>ID</th><th>Fecha</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Valor</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td>TX-8841</td><td>20/09 09:12</td><td>Transferencia</td><td>001-234-567</td><td>009-441-220</td><td>$180.000</td><td><span class="st ok">Completada</span></td></tr>
+          <tr><td>TX-8830</td><td>19/09 16:40</td><td>Pago</td><td>001-234-567</td><td>EPM</td><td>$95.400</td><td><span class="st ok">Completada</span></td></tr>
+          <tr><td>TX-8812</td><td>18/09 11:02</td><td>Transferencia</td><td>001-234-567</td><td>009-112</td><td>$4.200.000</td><td><span class="st bad">Rechazada</span></td></tr>
+          <tr><td>TX-8701</td><td>12/09 14:11</td><td>Transferencia</td><td>001-234-567</td><td>008-990</td><td>$50.000</td><td><span class="st warn">Cancelada</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="u-notificaciones">
+  <header class="app"></header>
+  <div class="wrap" style="max-width:680px">
+    <h2 class="d">Alertas</h2>
+    <div class="card"><p><strong>Enviada</strong> $180.000 a Andrés Pérez · 20/09 09:12</p></div>
+    <div class="card" style="margin-top:10px"><p><strong>Recibida</strong> $420.000 de Laura Díaz · 15/09 18:03</p></div>
+    <div class="card" style="margin-top:10px"><p><strong>Seguridad</strong> Contraseña cambiada · 10/09 07:44</p></div>
+  </div>
+</section>
+
+<section class="screen" id="u-reportes">
+  <header class="app"></header>
+  <div class="wrap" style="max-width:520px">
+    <h2 class="d">Exportar</h2>
+    <div class="card">
+      <label for="rp-desde">Desde</label><input id="rp-desde" name="desde" type="date" value="2026-09-01" />
+      <label for="rp-hasta">Hasta</label><input id="rp-hasta" name="hasta" type="date" value="2026-09-20" />
+      <div class="row"><button class="btn mint" onclick="ping('PDF (prototipo)')">PDF</button><button class="btn ghost" onclick="ping('CSV (prototipo)')">CSV</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="a-panel">
+  <header class="app"><div class="d">FINTEC · Admin</div><nav><button class="on">Operación</button><button onclick="go('login')">Salir</button></nav></header>
+  <div class="wrap">
+    <h2 class="d">Control de cuentas</h2>
+    <p style="color:var(--dim)">Buscar · bloquear · devolver. El admin no altera saldos a mano.</p>
+    <div class="card">
+      <label for="ad-busca">Documento, cuenta o correo</label>
+      <div class="row"><input id="ad-busca" name="busqueda" value="1023456789" style="flex:1"><button class="btn mint">Buscar</button></div>
+      <table>
+        <thead><tr><th>Usuario</th><th>Cuenta</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>María Gómez</td><td>001-234-567</td><td><span class="st ok">Activa</span></td><td><button class="chip" onclick="ping('Bloqueada · RN-07')">Bloquear</button></td></tr>
+          <tr><td>Carlos Ruiz</td><td>001-880-112</td><td><span class="st bad">Bloqueada</span></td><td><button class="chip">Desbloquear</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3>Devoluciones</h3>
+      <table>
+        <tbody>
+          <tr><td>TX-8841 Completada $180.000</td><td><button class="chip" onclick="ping('Nueva reversión TX-8841-R')">Devolver</button></td></tr>
+          <tr><td>TX-8600 ya revertida</td><td><button class="chip" onclick="ping('Este movimiento ya fue revertido')">Devolver</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="c-panel">
+  <header class="app"><div class="d">FINTEC · Contable</div><nav><button class="on">Flujo</button><button onclick="go('c-reportes')">Reportes</button><button onclick="go('login')">Salir</button></nav></header>
+  <div class="wrap">
+    <h2 class="d">Flujo global</h2>
+    <p style="color:var(--dim)">Solo lectura · ingresos, egresos y neto por periodo</p>
+    <div class="grid">
+      <div class="card"><div style="color:var(--dim)">Ingresos</div><div class="d" style="font-size:30px">$18.42M</div></div>
+      <div class="card"><div style="color:var(--dim)">Egresos</div><div class="d" style="font-size:30px">$12.11M</div></div>
+      <div class="card" style="border-color:#1757D8"><div style="color:var(--blue)">Neto movilizado</div><div class="d" style="font-size:30px">$6.31M</div></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <table>
+        <thead><tr><th>Tipo</th><th>Ops</th><th>Monto</th></tr></thead>
+        <tbody>
+          <tr><td>Transferencias</td><td>312</td><td>$14.200.000</td></tr>
+          <tr><td>Pagos</td><td>188</td><td>$9.330.500</td></tr>
+          <tr><td>Bolsillos</td><td>97</td><td>$7.000.000</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="c-reportes">
+  <header class="app"><div class="d">FINTEC · Contable</div><nav><button onclick="go('c-panel')">Flujo</button><button class="on">Reportes</button><button onclick="go('login')">Salir</button></nav></header>
+  <div class="wrap" style="max-width:520px">
+    <h2 class="d">Reporte financiero</h2>
+    <div class="card">
+      <label for="cr-desde">Rango</label>
+      <input id="cr-desde" name="desde" type="date" value="2026-09-01" />
+      <input aria-label="Hasta" name="hasta" type="date" value="2026-09-20" style="margin-top:8px" />
+      <div class="row"><button class="btn mint" onclick="ping('PDF contable')">PDF</button><button class="btn ghost" onclick="ping('CSV contable')">CSV</button></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const H = `<div class="d">FINTEC</div>
+    <nav>
+      <button data-g="u-inicio">Inicio</button>
+      <button data-g="u-transferir">Enviar</button>
+      <button data-g="u-bolsillos">Bolsillos</button>
+      <button data-g="u-pagos">Pagar</button>
+      <button data-g="u-movimientos">Movimientos</button>
+      <button data-g="u-notificaciones">Alertas</button>
+      <button data-g="u-reportes">Exportar</button>
+      <button data-g="login">Salir</button>
+    </nav>`;
+  function paint(id){
+    document.querySelectorAll('#u-inicio header, #u-transferir header, #u-bolsillos header, #u-pagos header, #u-movimientos header, #u-notificaciones header, #u-reportes header').forEach(el=>{
+      el.innerHTML=H;
+      el.querySelectorAll('[data-g]').forEach(b=>{if(b.dataset.g===id)b.classList.add('on'); b.onclick=()=>go(b.dataset.g)});
+    });
+  }
+  // Credenciales de demostracion del prototipo. Van en el cliente a proposito:
+  // esto es una maqueta academica, no un sistema de autenticacion real.
+  const CUENTAS = {
+    'admin':      {clave:'admin123', destino:'a-panel',  rol:'Administrador'},
+    'contable':   {clave:'conta123', destino:'c-panel',  rol:'Contable'},
+    '1023456789': {clave:'maria123', destino:'u-inicio', rol:'María Gómez'}
+  };
+  const MAX_INTENTOS = 5, BLOQUEO_MIN = 15;
+  let intentos = 0, bloqueadoHasta = 0;
+
+  function lgError(msg){
+    const e = document.getElementById('lg-error');
+    e.textContent = msg || '';
+    e.classList.toggle('on', !!msg);
+  }
+
+  function entrar(){
+    const ahora = Date.now();
+    if (ahora < bloqueadoHasta){
+      const min = Math.ceil((bloqueadoHasta - ahora) / 60000);
+      lgError('Cuenta bloqueada. Intenta de nuevo en ' + min + ' minuto' + (min === 1 ? '' : 's') + '.');
+      return;
+    }
+    const usuario = document.getElementById('lg-doc').value.trim().toLowerCase();
+    const clave = document.getElementById('lg-pass').value;
+    const cuenta = CUENTAS[usuario];
+    if (cuenta && cuenta.clave === clave){
+      intentos = 0;
+      lgError('');
+      document.getElementById('lg-pass').value = '';
+      ping('Bienvenido, ' + cuenta.rol);
+      go(cuenta.destino);
+      return;
+    }
+    intentos++;
+    if (intentos >= MAX_INTENTOS){
+      bloqueadoHasta = ahora + BLOQUEO_MIN * 60000;
+      intentos = 0;
+      lgError('Cuenta bloqueada ' + BLOQUEO_MIN + ' minutos por ' + MAX_INTENTOS + ' intentos fallidos.');
+      return;
+    }
+    lgError('Usuario o contraseña incorrectos. Te quedan ' + (MAX_INTENTOS - intentos) + ' intento' + (MAX_INTENTOS - intentos === 1 ? '' : 's') + '.');
+  }
+
+  function go(id){
+    if (id === 'login'){ lgError(''); const p = document.getElementById('lg-pass'); if (p) p.value = ''; }document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');paint(id);scrollTo(0,0)}
+  function rellenar(u, c){
+    document.getElementById('lg-doc').value = u;
+    document.getElementById('lg-pass').value = c;
+    lgError('');
+  }
+  function ping(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2400)}
+  function fmt(n){return '$'+Math.round(n).toLocaleString('es-CO')}
+  function simular(){
+    const monto=+document.getElementById('monto').value;
+    const plazo=+document.getElementById('plazo').value;
+    const r=0.018;
+    const cuota=monto*r/(1-Math.pow(1+r,-plazo));
+    document.getElementById('montoLbl').textContent=fmt(monto);
+    document.getElementById('plazoLbl').textContent=plazo+' meses';
+    document.getElementById('cuota').textContent=fmt(cuota);
+  }
+  paint('u-inicio');
+  simular();
+</script>
+</body>
+</html>

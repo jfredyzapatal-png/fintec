@@ -1,0 +1,62 @@
+FINTEC — Ejecucion de la bateria de pruebas
+Fecha: 2026-10-20 20:19 | Node v24.11.0 | Vitest 3.2.4 | entorno jsdom 26.1.0
+Comando: npm run cobertura (desde fintec/calidad)
+
+
+ RUN  v3.2.4 C:/Users/USUARIO/Desktop/fintec/calidad
+      Coverage enabled with v8
+
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-01 transferencia valida descuenta, acredita y notifica a ambos 304ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-02 monto igual al disponible deja el saldo en cero 152ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-03 saldo insuficiente: estado Rechazada, motivo y saldos intactos (RN-01) 125ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-04 monto cero: mensaje y ningun movimiento 121ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-05 monto negativo: mensaje y ningun movimiento 105ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-06 cuenta destino bloqueada: rechazo sin movimiento (RN-07) 105ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-07 cuenta destino inexistente: mensaje y ningun movimiento 120ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-08 si el admin bloquea la cuenta en sesion, se cierra la sesion (RN-07) 108ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-09 usuario valido entra a su dashboard 97ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-10 admin entra al panel administrativo 109ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-11 contable entra al panel contable 117ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-12 contrasena incorrecta: mensaje generico que no revela el dato (CA-02.2) 85ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-13 documento inexistente: mismo mensaje generico 66ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-14 bloqueo de 15 min tras 5 intentos, solo para ese documento (RNF-02) 86ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-15 cuenta bloqueada por el administrador no inicia sesion (RN-07) 81ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-16 registro valido crea la cuenta activa con saldo cero (CA-01.2) 128ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-17 documento duplicado: rechaza y no crea cuenta 109ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-18 contrasena menor a 8 caracteres: rechaza 68ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-19 correo con formato invalido: rechaza 89ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-20 menor de 18 anios: rechaza (valor limite) 95ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-21 nombre faltante: rechaza por dato obligatorio 88ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-22 documento con formato invalido: rechaza 109ms
+ ✓ tests/fintec.test.mjs > RF-05 Gestion administrativa (Escenario 4) > CP-23 devolucion crea reversion enlazada y restablece saldos (RN-05) 170ms
+ ✓ tests/fintec.test.mjs > RF-05 Gestion administrativa (Escenario 4) > CP-24 devolver dos veces: mensaje de la especificacion y boton deshabilitado 173ms
+ ✓ tests/fintec.test.mjs > RF-05 Gestion administrativa (Escenario 4) > CP-25 destino sin saldo suficiente: rechaza y no mueve dinero 172ms
+ ✓ tests/fintec.test.mjs > RF-05 Gestion administrativa (Escenario 4) > CP-26 cancelacion deja el original en estado Cancelada (CA-04.1) 161ms
+ ✓ tests/fintec.test.mjs > RF-05 Gestion administrativa (Escenario 4) > CP-23b el administrador busca por documento, cuenta y correo (CA-05.1) 109ms
+ ✓ tests/fintec.test.mjs > RF-03 y RN-02 Saldos y bolsillos > CP-27 el total suma disponible mas bolsillos, sin mezclarlos (CA-03.1/03.2) 94ms
+ ✓ tests/fintec.test.mjs > RF-03 y RN-02 Saldos y bolsillos > CP-28 aportar y retirar mueven dinero solo dentro de la misma cuenta 89ms
+ ✓ tests/fintec.test.mjs > RF-03 y RN-02 Saldos y bolsillos > CP-29 aportar mas que el disponible: rechaza sin cambios 109ms
+ ✓ tests/fintec.test.mjs > RF-06 Cambio de contrasena y notificacion (CA-06.2) > CP-30 cambio valido actualiza la clave y notifica con fecha y hora 108ms
+ ✓ tests/fintec.test.mjs > RF-06 Cambio de contrasena y notificacion (CA-06.2) > CP-31 contrasena actual incorrecta: no cambia nada 117ms
+ ✓ tests/fintec.test.mjs > RF-06 Cambio de contrasena y notificacion (CA-06.2) > CP-32 la nueva contrasena debe ser distinta de la actual 104ms
+
+ ✓ tests/fintec.test.mjs > RF-07 Reporte descargable (CA-07.1/07.2) > CP-33 exporta CSV con las columnas exigidas por CA-07.2 103ms
+ ✓ tests/fintec.test.mjs > RF-07 Reporte descargable (CA-07.1/07.2) > CP-34 rango sin movimientos: avisa y no descarga 117ms
+ ✓ tests/fintec.test.mjs > RF-08 Dashboard contable (CA-08.1/08.2) > CP-35 muestra ingresos, egresos y neto, y desglosa por tipo 115ms
+ ✓ tests/fintec.test.mjs > RF-08 Dashboard contable (CA-08.1/08.2) > CP-35b el rango filtra realmente los movimientos 106ms
+ ✓ tests/fintec.test.mjs > Control de acceso y sesion > CP-36 un usuario no alcanza el panel admin aunque invoque la navegacion 107ms
+ ✓ tests/fintec.test.mjs > Control de acceso y sesion > CP-36b el contable no alcanza el panel admin (RN-06) 113ms
+ ✓ tests/fintec.test.mjs > Control de acceso y sesion > CP-37 la sesion se cierra automaticamente a los 10 minutos (RNF-01) 100ms
+
+ Test Files  1 passed (1)
+      Tests  40 passed (40)
+   Start at  20:19:47
+   Duration  6.74s (transform 677ms, setup 0ms, collect 99ms, tests 4.64s, environment 1.08s, prepare 199ms)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   87.04 |    84.09 |   82.53 |   87.04 |                   
+ ...e.generated.js |   87.04 |    84.09 |   82.53 |   87.04 | ...28-545,589-591 
+-------------------|---------|----------|---------|---------|-------------------

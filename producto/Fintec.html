@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FINTEC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --navy:#0B1E46; --blue:#1757D8; --sky:#27A6E6;
+  --bg:#F3F7FC; --card:#FFFFFF; --line:#E3E9F5;
+  --ink:#10213F; --dim:#5C6B8C; --mint:#1757D8;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",sans-serif;line-height:1.5}
+h1,h2,h3,.d{font-family:Syne,sans-serif}
+.proto{background:var(--navy);color:#C9DDFF;font-size:12px;padding:8px 16px;display:flex;justify-content:space-between}
+.proto a{color:#8FC6FF}
+.screen{display:none;min-height:100vh}.screen.active{display:block}
+
+/* ---- Landing (página pública) ---- */
+.topnav{display:flex;justify-content:space-between;align-items:center;padding:18px 32px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#ffffffee;backdrop-filter:blur(8px);z-index:5}
+.logo{font-family:Syne,sans-serif;font-weight:800;font-size:22px;background:linear-gradient(135deg,var(--sky),var(--navy));-webkit-background-clip:text;background-clip:text;color:transparent}
+.topnav nav{display:flex;align-items:center;gap:4px}
+.topnav nav button{background:transparent;border:0;color:var(--dim);padding:10px 14px;border-radius:10px;cursor:pointer;font:inherit;font-size:14px}
+.topnav nav button:hover{background:#EEF4FF;color:var(--navy)}
+.topnav .cta{background:var(--blue);color:#fff;font-weight:600;padding:10px 18px;border-radius:10px;border:0;cursor:pointer;font:inherit}
+
+.hero{padding:64px 32px 40px;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center}
+.hero h1{font-size:44px;line-height:1.08;margin:0 0 16px}
+.hero p.lead{color:var(--dim);font-size:17px;max-width:46ch;margin:0 0 24px}
+.hero .row{margin-top:4px}
+.badge{display:inline-flex;align-items:center;gap:8px;background:#EAF3FF;color:var(--blue);border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;margin-bottom:18px}
+
+.stats{max-width:1180px;margin:0 auto;padding:0 32px 56px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.stat{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+.stat svg{flex:none}
+.stat strong{display:block;font-size:14px}
+.stat span{color:var(--dim);font-size:13px}
+
+.section-head{max-width:1180px;margin:0 auto;padding:0 32px;text-align:left}
+.section-head h2{font-size:28px;margin:0 0 6px}
+.section-head p{color:var(--dim);margin:0 0 28px;max-width:60ch}
+
+.products{max-width:1180px;margin:0 auto 56px;padding:0 32px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.product{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.product .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#EAF3FF,#DCEBFF)}
+.product h3{margin:4px 0 0;font-size:18px}
+.product p{color:var(--dim);font-size:14px;margin:0;flex:1}
+.product .tag{font-size:12px;color:var(--blue);font-weight:600}
+.product .link{background:transparent;border:1px solid var(--line);color:var(--navy);padding:9px 14px;border-radius:10px;cursor:pointer;font:inherit;font-weight:600;text-align:left}
+.product .link:hover{background:#EEF4FF}
+
+.sim{max-width:1180px;margin:0 auto 56px;padding:0 32px}
+.sim-card{background:linear-gradient(135deg,#0B1E46,#1757D8);border-radius:28px;padding:36px;display:grid;grid-template-columns:1fr 1fr;gap:32px;color:#fff}
+.sim-card h2{color:#fff;font-size:26px;margin:0 0 8px}
+.sim-card p{color:#C9DDFF;margin:0 0 20px;font-size:14px}
+.sim-card input[type=range]{width:100%;accent-color:#fff}
+.sim-row{display:flex;justify-content:space-between;font-size:13px;color:#EAF3FF;margin-top:4px}
+.sim-result{background:#ffffff1a;border:1px solid #ffffff33;border-radius:18px;padding:22px}
+.sim-result .big{font-size:34px;margin:4px 0}
+.sim-note{font-size:11px;color:#C9DDFF;margin-top:14px}
+
+.testimonials{max-width:1180px;margin:0 auto 64px;padding:0 32px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.testi{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+.testi p{font-size:14px;color:var(--ink);margin:0 0 12px}
+.testi .who{font-size:12px;color:var(--dim)}
+
+footer.site{border-top:1px solid var(--line);padding:28px 32px;text-align:center;color:var(--dim);font-size:13px}
+
+/* ---- Auth ---- */
+.auth{min-height:100vh;display:grid;place-items:center;padding:40px 16px;background:radial-gradient(circle at 20% 15%,#DCEBFF,transparent 42%),var(--bg)}
+.box{width:min(440px,100%);background:var(--card);border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:0 20px 50px -30px rgba(11,30,70,.3)}
+label{display:block;font-size:12px;color:var(--dim);margin:12px 0 6px}
+input,select,textarea{width:100%;background:#F8FAFD;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:12px;font:inherit}
+.btn{border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:600;cursor:pointer}
+.mint{background:var(--mint);color:#fff}.ghost{background:transparent;border:1px solid var(--line);color:var(--navy)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{background:#EEF4FF;border:1px solid var(--line);color:var(--navy);border-radius:999px;padding:8px 12px;cursor:pointer;font-size:12px}
+
+/* ---- App interno ---- */
+header.app{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#ffffffee;backdrop-filter:blur(10px);z-index:5}
+nav button{background:transparent;border:0;color:var(--dim);margin-right:6px;padding:8px 10px;border-radius:10px;cursor:pointer;font:inherit}
+nav button.on,nav button:hover{color:var(--navy);background:#EEF4FF}
+.wrap{padding:24px;max-width:1180px;margin:0 auto}
+.hero-card{background:linear-gradient(135deg,#F2F7FF,#EAF2FF);border:1px solid var(--line);border-radius:28px;padding:28px;display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
+.big{font-size:42px;margin:8px 0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+.promo{background:linear-gradient(135deg,#0B1E46,#1757D8);color:#fff;border-radius:18px;padding:18px}
+.promo p{color:#C9DDFF;font-size:13px;margin:4px 0 12px}
+.promo .btn{background:#fff;color:var(--navy)}
+table{width:100%;border-collapse:collapse;font-size:14px} th,td{padding:10px 6px;border-bottom:1px solid var(--line);text-align:left}
+.st{font-size:11px;padding:3px 8px;border-radius:999px}.ok{background:#E6F7EF;color:#157347}.bad{background:#FDEAEA;color:#C23434}.warn{background:#FFF4E0;color:#B36B00}
+.err{display:none;background:#FDEAEA;color:#C23434;border-radius:10px;padding:10px 12px;font-size:13px;margin:12px 0 0}
+.err.on{display:block}
+.toast{display:none;position:fixed;bottom:16px;right:16px;background:var(--navy);color:#fff;padding:12px 16px;border-radius:12px;font-weight:600}
+@media(max-width:900px){.hero,.hero-card,.grid,.products,.stats,.testimonials,.sim-card{grid-template-columns:1fr} nav{display:flex;flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<div class="proto"><span>Prototipo B · FINTEC · maqueta visual, proyecto académico — no es una institución financiera real</span><span>maqueta de una sola página</span></div>
+<div class="toast" id="toast"></div>
+
+<!-- ===================== LANDING ===================== -->
+<section class="screen active" id="home">
+  <header class="topnav">
+    <div class="logo">FINTEC</div>
+    <nav>
+      <button onclick="go('home')">Inicio</button>
+      <button onclick="document.getElementById('productos').scrollIntoView({behavior:'smooth'})">Productos</button>
+      <button onclick="go('registro')">Abrir cuenta</button>
+      <button class="cta" onclick="go('login')">Ingresar</button>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <div>
+      <div class="badge">Banca digital · disponible 24/7</div>
+      <h1 class="d">Tu plata, organizada y bajo control.</h1>
+      <p class="lead">Transfiere, guarda en bolsillos y paga tus facturas desde un solo lugar. Abre tu cuenta en minutos, sin filas ni papeleo.</p>
+      <div class="row">
+        <button class="btn mint" onclick="go('registro')">Abrir cuenta gratis</button>
+        <button class="btn ghost" onclick="go('login')">Ya tengo cuenta</button>
+      </div>
+    </div>
+    <svg viewBox="0 0 420 420" width="100%" role="img" aria-label="Vista de la app FINTEC en el celular">
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#27A6E6"/><stop offset="1" stop-color="#0B1E46"/>
+        </linearGradient>
+      </defs>
+      <rect x="110" y="20" width="200" height="380" rx="34" fill="#fff" stroke="#E3E9F5" stroke-width="2"/>
+      <rect x="126" y="50" width="168" height="130" rx="18" fill="url(#g1)"/>
+      <text x="142" y="90" fill="#C9DDFF" font-family="IBM Plex Sans" font-size="11">Disponible ahora</text>
+      <text x="142" y="118" fill="#fff" font-family="Syne" font-weight="700" font-size="22">$2.450.000</text>
+      <text x="142" y="140" fill="#C9DDFF" font-family="IBM Plex Sans" font-size="10">Bolsillos: $1.150.000</text>
+      <rect x="126" y="196" width="78" height="60" rx="14" fill="#EAF3FF"/>
+      <rect x="212" y="196" width="78" height="60" rx="14" fill="#EAF3FF"/>
+      <text x="138" y="222" font-family="IBM Plex Sans" font-size="10" fill="#1757D8">Vacaciones</text>
+      <text x="138" y="240" font-family="Syne" font-weight="700" font-size="12" fill="#0B1E46">$800.000</text>
+      <text x="224" y="222" font-family="IBM Plex Sans" font-size="10" fill="#1757D8">Emergencias</text>
+      <text x="224" y="240" font-family="Syne" font-weight="700" font-size="12" fill="#0B1E46">$350.000</text>
+      <rect x="126" y="272" width="168" height="40" rx="12" fill="#F8FAFD" stroke="#E3E9F5"/>
+      <text x="138" y="297" font-family="IBM Plex Sans" font-size="11" fill="#5C6B8C">Enviar a Laura Díaz · $180.000</text>
+      <rect x="126" y="326" width="168" height="40" rx="12" fill="#F8FAFD" stroke="#E3E9F5"/>
+      <text x="138" y="351" font-family="IBM Plex Sans" font-size="11" fill="#5C6B8C">Pago EPM · $95.400</text>
+      <circle cx="330" cy="70" r="14" fill="#DCEBFF"/>
+      <circle cx="350" cy="340" r="9" fill="#27A6E6"/>
+    </svg>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M3 12l7-7 2 2-5 5 5 5-2 2-7-7z" fill="#1757D8"/><path d="M11 12l7-7 2 2-5 5 5 5-2 2-7-7z" fill="#27A6E6"/></svg>
+      <div><strong>Transferencias en segundos</strong><span>Entre cuentas FINTEC y a otros bancos, sin horarios.</span></div></div>
+    <div class="stat"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#1757D8" stroke-width="2"/><path d="M8 12h8M12 8v8" stroke="#27A6E6" stroke-width="2"/></svg>
+      <div><strong>Bolsillos de ahorro</strong><span>Separa plata para metas sin tocar tu saldo disponible.</span></div></div>
+    <div class="stat"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2" stroke="#1757D8" stroke-width="2"/><path d="M3 10h18" stroke="#27A6E6" stroke-width="2"/></svg>
+      <div><strong>Todo desde la app</strong><span>Pagos, reportes y notificaciones sin ir a una sucursal.</span></div></div>
+  </div>
+
+  <div class="section-head" id="productos">
+    <h2 class="d">Hecho para tus metas</h2>
+    <p>Elige cómo quieres mover, guardar o pedir tu dinero. Cada producto se administra desde tu cuenta, sin costos ocultos.</p>
+  </div>
+  <div class="products">
+    <div class="product">
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 10c0-3 2.5-5 6-5h3l3 2v3l-3 1-1 3H8l-1-2H5a2 2 0 010-4" stroke="#1757D8" stroke-width="1.6"/><circle cx="16" cy="7" r=".8" fill="#1757D8"/></svg></div>
+      <span class="tag">Ahorro</span>
+      <h3>Bolsillos de ahorro</h3>
+      <p>Crea tantos bolsillos como metas tengas — vacaciones, emergencias, estudio — y mueve plata entre ellos cuando quieras.</p>
+      <button class="link" onclick="go('login')">Crear un bolsillo</button>
+    </div>
+    <div class="product">
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="#1757D8" stroke-width="1.6"/><path d="M3 10.5h18" stroke="#27A6E6" stroke-width="1.6"/><rect x="6" y="14" width="5" height="2" rx="1" fill="#27A6E6"/></svg></div>
+      <span class="tag">Crédito</span>
+      <h3>Crédito libre inversión</h3>
+      <p>Simula una cuota desde $500.000 y a tu medida, sin salir de la app. Desembolso a tu cuenta FINTEC.</p>
+      <button class="link" onclick="document.getElementById('simulador').scrollIntoView({behavior:'smooth'})">Simular cuota</button>
+    </div>
+    <div class="product">
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4v5c0 5-3.4 8.3-8 9-4.6-.7-8-4-8-9V7l8-4z" stroke="#1757D8" stroke-width="1.6"/><path d="M9 12l2 2 4-4" stroke="#27A6E6" stroke-width="1.6"/></svg></div>
+      <span class="tag">Pagos</span>
+      <h3>Pagos y convenios</h3>
+      <p>Paga servicios, universidad y convenios registrados en segundos, con comprobante inmediato.</p>
+      <button class="link" onclick="go('login')">Ver convenios</button>
+    </div>
+  </div>
+
+  <div class="sim" id="simulador">
+    <div class="sim-card">
+      <div>
+        <h2 class="d">Simula tu crédito</h2>
+        <p>Mueve el monto y el plazo para ver una cuota aproximada.</p>
+        <label for="monto" style="color:#C9DDFF">Monto: <strong id="montoLbl">$5.000.000</strong></label>
+        <input type="range" id="monto" min="500000" max="20000000" step="100000" value="5000000" oninput="simular()" />
+        <div class="sim-row"><span>$500.000</span><span>$20.000.000</span></div>
+        <label for="plazo" style="color:#C9DDFF;margin-top:18px">Plazo: <strong id="plazoLbl">24 meses</strong></label>
+        <input type="range" id="plazo" min="12" max="48" step="12" value="24" oninput="simular()" />
+        <div class="sim-row"><span>12 meses</span><span>48 meses</span></div>
+      </div>
+      <div class="sim-result">
+        <span style="color:#C9DDFF;font-size:13px">Cuota mensual aproximada</span>
+        <div class="d big" id="cuota">$258.404</div>
+        <button class="btn" style="background:#fff;color:var(--navy)" onclick="go('registro')">Abrir cuenta para solicitarlo</button>
+        <p class="sim-note">Calculado a una tasa fija de 1,8% mensual (~23,9% E.A.). Valor simulado con fines ilustrativos para este prototipo académico; no constituye una oferta real de crédito.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-head"><h2 class="d">Gente que ya lo usa</h2></div>
+  <div class="testimonials">
+    <div class="testi"><p>Tener los bolsillos separados me ayudó a no gastarme lo que estaba ahorrando para el semestre.</p><div class="who">Mariana T. · estudiante</div></div>
+    <div class="testi"><p>Pago los convenios de la casa en menos de un minuto, sin entrar a otra página.</p><div class="who">Daniel R. · independiente</div></div>
+    <div class="testi"><p>Me gusta que me avisa apenas me llega o sale una transferencia.</p><div class="who">Camila P. · comerciante</div></div>
+  </div>
+
+  <footer class="site">FINTEC — proyecto académico de levantamiento y especificación de requisitos · © 2026</footer>
+</section>
+
+<!-- ===================== AUTH ===================== -->
+<section class="screen" id="login">
+  <div class="auth"><div class="box">
+    <div class="logo" style="font-size:18px">FINTEC</div>
+    <h1 class="d" style="margin:10px 0 6px;font-size:26px">Bienvenido de vuelta</h1>
+    <p style="color:var(--dim);margin-top:0">Ingresa con tu documento y contraseña. Tras 5 intentos fallidos, bloqueamos la cuenta 15 minutos.</p>
+    <label for="lg-doc">Usuario o documento</label><input id="lg-doc" name="documento" autocomplete="username" placeholder="admin" onkeydown="if(event.key==='Enter')entrar()" />
+    <label for="lg-pass">Contraseña</label><input id="lg-pass" name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')entrar()" />
+    <p id="lg-error" class="err" role="alert" aria-live="polite"></p>
+    <div class="row"><button class="btn mint" onclick="entrar()">Entrar</button><button class="btn ghost" onclick="go('registro')">Registrarme</button></div>
+    <p style="color:var(--dim);font-size:12px;margin-top:18px">Demo por rol · rellena las credenciales</p>
+    <div class="row">
+      <button class="chip" onclick="rellenar('1023456789','maria123')">María</button>
+      <button class="chip" onclick="rellenar('1098765432','carlos123')">Carlos</button>
+      <button class="chip" onclick="rellenar('1076543210','laura123')">Laura</button>
+      <button class="chip" onclick="rellenar('admin','admin123')">Admin</button>
+      <button class="chip" onclick="rellenar('contable','conta123')">Contable</button>
+    </div>
+    <p style="margin-top:18px"><button class="ghost btn" style="width:100%" onclick="go('home')">← Volver al inicio</button></p>
+  </div></div>
+</section>
+
+<section class="screen" id="registro">
+  <div class="auth"><div class="box">
+    <h2 class="d">Crear cuenta</h2>
+    <p style="color:var(--dim)">Se activa al instante, con saldo disponible en $0. Documento único.</p>
+    <label for="rg-nombre">Nombre</label><input id="rg-nombre" name="nombre" placeholder="Nombre y apellido" />
+    <label for="rg-tipo">Tipo / documento</label>
+    <div class="row"><select id="rg-tipo" name="tipo" style="flex:1"><option>CC</option><option>CE</option><option>PA</option></select><input id="rg-doc" aria-label="Número de documento" name="documento" style="flex:2" placeholder="1098765000" /></div>
+    <label for="rg-nac">Nacimiento</label><input id="rg-nac" name="nacimiento" type="date" />
+    <label for="rg-correo">Correo</label><input id="rg-correo" name="correo" type="email" placeholder="correo@ejemplo.com" />
+    <label for="rg-pass">Contraseña</label><input id="rg-pass" name="password" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" />
+    <p id="rg-error" class="err" role="alert" aria-live="polite"></p>
+    <div class="row"><button class="btn mint" onclick="registrar()">Activar</button><button class="btn ghost" onclick="go('login')">Volver</button></div>
+  </div></div>
+</section>
+
+<!-- ===================== APP ===================== -->
+<section class="screen" id="u-inicio"><header class="app"></header><div class="wrap" id="b-inicio"></div></section>
+<section class="screen" id="u-transferir"><header class="app"></header><div class="wrap" style="max-width:640px" id="b-transferir"></div></section>
+<section class="screen" id="u-bolsillos"><header class="app"></header><div class="wrap" id="b-bolsillos"></div></section>
+<section class="screen" id="u-pagos"><header class="app"></header><div class="wrap" style="max-width:560px" id="b-pagos"></div></section>
+<section class="screen" id="u-movimientos"><header class="app"></header><div class="wrap" id="b-movimientos"></div></section>
+<section class="screen" id="u-notificaciones"><header class="app"></header><div class="wrap" style="max-width:680px" id="b-alertas"></div></section>
+<section class="screen" id="u-reportes"><header class="app"></header><div class="wrap" style="max-width:520px" id="b-reportes"></div></section>
+
+<section class="screen" id="a-panel">
+  <header class="app"><div class="d">FINTEC · Admin</div><nav><button class="on">Operación</button><button onclick="salir()">Salir</button></nav></header>
+  <div class="wrap" id="b-admin"></div>
+</section>
+
+<section class="screen" id="c-panel">
+  <header class="app"><div class="d">FINTEC · Contable</div><nav><button class="on">Flujo</button><button onclick="go('c-reportes')">Reportes</button><button onclick="salir()">Salir</button></nav></header>
+  <div class="wrap" id="b-contable"></div>
+</section>
+
+<section class="screen" id="c-reportes">
+  <header class="app"><div class="d">FINTEC · Contable</div><nav><button onclick="go('c-panel')">Flujo</button><button class="on">Reportes</button><button onclick="salir()">Salir</button></nav></header>
+  <div class="wrap" style="max-width:560px" id="b-creportes"></div>
+</section>
+
+<script>
+/* ============================================================
+   FINTEC - motor del prototipo
+   Todo el estado vive en memoria: al recargar la pagina los
+   datos vuelven al punto de partida. Es una maqueta academica,
+   no hay servidor ni base de datos detras.
+   ============================================================ */
+
+const BANCO = { usuarios: {}, movimientos: [], seq: 8840 };
+let sesion = null;
+
+function usuario(doc, clave, nombre, cuenta, rol, disponible, bolsillos, extras){
+  BANCO.usuarios[doc] = {doc, clave, nombre, cuenta, rol, disponible,
+    bolsillos: bolsillos || [], estado: 'activa', alertas: [],
+    tipo: (extras && extras.tipo) || 'CC',
+    correo: (extras && extras.correo) || '',
+    nacimiento: (extras && extras.nacimiento) || ''};
+}
+usuario('1023456789','maria123','María Gómez','001-234-567','usuario',2450000,[{nombre:'Vacaciones',saldo:800000},{nombre:'Emergencias',saldo:350000}],{tipo:'CC',correo:'maria.gomez@correo.com',nacimiento:'1996-04-12'});
+usuario('1098765432','carlos123','Carlos Ruiz','001-880-112','usuario',1200000,[{nombre:'Estudio',saldo:400000}],{tipo:'CC',correo:'carlos.ruiz@correo.com',nacimiento:'1990-11-02'});
+usuario('1076543210','laura123','Laura Díaz','009-441-220','usuario',3800000,[{nombre:'Viaje',saldo:1000000}],{tipo:'CE',correo:'laura.diaz@correo.com',nacimiento:'1988-07-19'});
+usuario('1045678901','andres123','Andrés Pérez','008-990-455','usuario',640000,[],{tipo:'CC',correo:'andres.perez@correo.com',nacimiento:'1999-02-28'});
+usuario('admin','admin123','Administrador','—','admin',0,[]);
+usuario('contable','conta123','Contable','—','contable',0,[]);
+
+const CONVENIOS = ['EPM','Universidad','Acueducto','Claro'];
+const MAX_INTENTOS = 5, BLOQUEO_MIN = 15;
+const intentosPorDoc = {};
+const bloqueoPorDoc = {};
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/* ---------- utilidades ---------- */
+function fmt(n){ return '$' + Math.round(n).toLocaleString('es-CO'); }
+function el(id){ return document.getElementById(id); }
+function val(id){ const e = el(id); return e ? e.value.trim() : ''; }
+function esc(t){ return String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fechaCorta(d){
+  const p = n => ('0' + n).slice(-2);
+  return p(d.getDate()) + '/' + p(d.getMonth()+1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function iso(d){ const p = n => ('0'+n).slice(-2); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function nuevoId(){ return 'TX-' + (++BANCO.seq); }
+function porCuenta(c){ return Object.values(BANCO.usuarios).find(u => u.cuenta === c); }
+function clientes(){ return Object.values(BANCO.usuarios).filter(u => u.rol === 'usuario'); }
+function totalBolsillos(u){ return u.bolsillos.reduce((s,b) => s + b.saldo, 0); }
+
+function mover(tipo, origen, destino, valor, estado, nota){
+  const m = {id: nuevoId(), ts: new Date(), tipo, origen, destino, valor, estado, nota: nota || '', revertida: false};
+  BANCO.movimientos.unshift(m);
+  return m;
+}
+function alerta(u, texto){ u.alertas.unshift({texto, ts: new Date()}); }
+function err(id, msg){ const e = el(id); if(!e) return; e.textContent = msg || ''; e.classList.toggle('on', !!msg); }
+
+/* ---------- historial inicial ---------- */
+(function sembrar(){
+  const maria = BANCO.usuarios['1023456789'], laura = BANCO.usuarios['1076543210'];
+  const hace = d => { const x = new Date(); x.setDate(x.getDate() - d); return x; };
+  const m1 = mover('Transferencia', maria.cuenta, laura.cuenta, 180000, 'Completada', 'Arriendo');
+  m1.ts = hace(6);
+  const m2 = mover('Pago', maria.cuenta, 'EPM', 95400, 'Completada', 'Referencia 10993821');
+  m2.ts = hace(9);
+  const m3 = mover('Transferencia', maria.cuenta, '009-112-000', 4200000, 'Rechazada', 'Saldo insuficiente');
+  m3.ts = hace(12);
+  alerta(maria, 'Enviada ' + fmt(180000) + ' a ' + laura.nombre);
+  alerta(laura, 'Recibida ' + fmt(180000) + ' de ' + maria.nombre);
+  alerta(maria, 'Transferencia rechazada por saldo insuficiente');
+})();
+
+/* ---------- sesion ---------- */
+function lgError(msg){ err('lg-error', msg); }
+
+function entrar(){
+  const ahora = Date.now();
+  const doc = val('lg-doc').toLowerCase();
+  if (!doc){ lgError('Escribe tu usuario o documento.'); return; }
+  const hasta = bloqueoPorDoc[doc] || 0;
+  if (ahora < hasta){
+    const min = Math.ceil((hasta - ahora) / 60000);
+    lgError('Esta cuenta está bloqueada. Intenta de nuevo en ' + min + ' minuto' + (min === 1 ? '' : 's') + '.');
+    return;
+  }
+  const u = BANCO.usuarios[doc];
+  if (u && u.clave === val('lg-pass')){
+    if (u.estado === 'bloqueada'){
+      lgError('Esta cuenta está bloqueada por el administrador. Comunícate con soporte.');
+      return;
+    }
+    intentosPorDoc[doc] = 0; bloqueoPorDoc[doc] = 0;
+    lgError(''); el('lg-pass').value = '';
+    sesion = u;
+    ping('Bienvenido, ' + u.nombre);
+    go(u.rol === 'admin' ? 'a-panel' : u.rol === 'contable' ? 'c-panel' : 'u-inicio');
+    return;
+  }
+  intentosPorDoc[doc] = (intentosPorDoc[doc] || 0) + 1;
+  if (intentosPorDoc[doc] >= MAX_INTENTOS){
+    bloqueoPorDoc[doc] = ahora + BLOQUEO_MIN * 60000;
+    intentosPorDoc[doc] = 0;
+    lgError('Esta cuenta queda bloqueada ' + BLOQUEO_MIN + ' minutos por ' + MAX_INTENTOS + ' intentos fallidos.');
+    return;
+  }
+  const quedan = MAX_INTENTOS - intentosPorDoc[doc];
+  lgError('Usuario o contraseña incorrectos. Te queda' + (quedan === 1 ? '' : 'n') + ' ' + quedan + ' intento' + (quedan === 1 ? '' : 's') + ' para esta cuenta.');
+}
+function salir(){ sesion = null; detenerInactividad(); go('login'); }
+function rellenar(u, c){ el('lg-doc').value = u; el('lg-pass').value = c; lgError(''); }
+
+function registrar(){
+  const doc = val('rg-doc'), nombre = val('rg-nombre'), clave = val('rg-pass');
+  const tipo = val('rg-tipo'), correo = val('rg-correo'), nac = val('rg-nac');
+  if (!doc || !nombre || !clave){ err('rg-error', 'Nombre, documento y contraseña son obligatorios.'); return; }
+  if (!/^[0-9A-Za-z]{5,15}$/.test(doc)){ err('rg-error', 'Documento inválido: usa de 5 a 15 caracteres sin espacios.'); return; }
+  if (BANCO.usuarios[doc] || BANCO.usuarios[doc.toLowerCase()]){ err('rg-error', 'Ese documento ya tiene una cuenta.'); return; }
+  if (clave.length < 8){ err('rg-error', 'La contraseña debe tener al menos 8 caracteres.'); return; }
+  if (correo && !EMAIL_RE.test(correo)){ err('rg-error', 'El correo no tiene un formato válido.'); return; }
+  if (nac){
+    const f = new Date(nac + 'T00:00:00');
+    if (isNaN(f)){ err('rg-error', 'Fecha de nacimiento inválida.'); return; }
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - f.getFullYear();
+    const m = hoy.getMonth() - f.getMonth();
+    if (m < 0 || (m === 0 && hoy.getDate() < f.getDate())) edad--;
+    if (edad < 18){ err('rg-error', 'Debes ser mayor de 18 años para abrir una cuenta.'); return; }
+    if (edad > 120){ err('rg-error', 'Revisa la fecha de nacimiento.'); return; }
+  }
+  const cuenta = '001-' + String(100 + clientes().length) + '-' + String(Math.floor(Math.random()*900)+100);
+  usuario(doc, clave, nombre, cuenta, 'usuario', 0, [], {tipo, correo, nacimiento: nac});
+  err('rg-error', '');
+  ping('Cuenta ' + cuenta + ' activada con saldo ' + fmt(0));
+  rellenar(doc, clave);
+  go('login');
+}
+
+/* ---------- pantallas de usuario ---------- */
+function mios(){
+  const c = sesion.cuenta;
+  return BANCO.movimientos.filter(m => m.origen === c || m.destino === c);
+}
+
+function pintarInicio(){
+  const u = sesion;
+  el('b-inicio').innerHTML =
+    '<div class="hero-card"><div>' +
+      '<div style="color:var(--dim)">Disponible ahora · cuenta ' + esc(u.cuenta) + '</div>' +
+      '<div class="d big">' + fmt(u.disponible) + '</div>' +
+      '<div style="color:var(--dim)">Total con bolsillos: ' + fmt(u.disponible + totalBolsillos(u)) + ' · los bolsillos no se transfieren directo</div>' +
+      '<div class="row">' +
+        '<button class="btn mint" onclick="go(\'u-transferir\')">Enviar</button>' +
+        '<button class="btn ghost" onclick="go(\'u-bolsillos\')">Bolsillos</button>' +
+        '<button class="btn ghost" onclick="go(\'u-pagos\')">Pagar</button>' +
+      '</div></div>' +
+      '<div class="card"><div style="color:var(--dim)">Actividad</div>' +
+        (mios().slice(0,3).map(m => '<p>' + esc(m.id) + ' · ' + esc(m.tipo) + ' · ' + fmt(m.valor) + ' · ' + esc(m.estado) + '</p>').join('') || '<p>Sin movimientos todavía.</p>') +
+      '</div></div>' +
+    '<div class="grid">' +
+      (u.bolsillos.map(b => '<div class="card"><div style="color:var(--dim)">' + esc(b.nombre) + '</div><div class="d" style="font-size:28px">' + fmt(b.saldo) + '</div></div>').join('') ||
+       '<div class="card"><div style="color:var(--dim)">Sin bolsillos</div><p>Crea uno para separar plata de tus metas.</p></div>') +
+      '<div class="promo"><div style="font-weight:700">¿Necesitas un crédito?</div><p>Simula tu cuota de libre inversión en minutos.</p>' +
+      '<button class="btn" onclick="go(\'home\');setTimeout(()=>document.getElementById(\'simulador\').scrollIntoView({behavior:\'smooth\'}),50)">Simular ahora</button></div>' +
+    '</div>';
+}
+
+function pintarTransferir(){
+  const u = sesion;
+  const otros = clientes().filter(x => x.doc !== u.doc);
+  el('b-transferir').innerHTML =
+    '<h2 class="d">Enviar dinero</h2>' +
+    '<div class="card">' +
+      '<div style="color:var(--dim);font-size:13px">Disponible: <strong>' + fmt(u.disponible) + '</strong></div>' +
+      '<label for="tr-cuenta">Cuenta destino</label>' +
+      '<select id="tr-cuenta" name="cuenta">' + otros.map(o => '<option value="' + o.cuenta + '">' + esc(o.cuenta + ' · ' + o.nombre) + '</option>').join('') + '</select>' +
+      '<label for="tr-monto">Monto</label><input id="tr-monto" name="monto" inputmode="numeric" placeholder="180000" />' +
+      '<label for="tr-nota">Nota</label><textarea id="tr-nota" name="nota" rows="2" placeholder="Arriendo"></textarea>' +
+      '<p id="tr-error" class="err" role="alert" aria-live="polite"></p>' +
+      '<div class="row"><button class="btn mint" onclick="transferir()">Transferir</button></div>' +
+      '<p style="color:var(--dim);font-size:13px">Si el monto supera tu disponible, el movimiento queda Rechazado y ningún saldo se mueve.</p>' +
+    '</div>';
+}
+
+function transferir(){
+  const u = sesion;
+  if (u.estado === 'bloqueada'){ ping('Tu cuenta está bloqueada'); salir(); return; }
+  const destino = porCuenta(val('tr-cuenta'));
+  const monto = Math.round(Number(val('tr-monto')));
+  const nota = val('tr-nota');
+  if (!destino){ err('tr-error', 'Esa cuenta no existe.'); return; }
+  if (!monto || monto <= 0){ err('tr-error', 'Escribe un monto mayor que cero.'); return; }
+  if (destino.estado === 'bloqueada'){ err('tr-error', 'La cuenta destino está bloqueada y no puede recibir dinero.'); return; }
+  if (monto > u.disponible){
+    mover('Transferencia', u.cuenta, destino.cuenta, monto, 'Rechazada', 'Saldo insuficiente');
+    alerta(u, 'Transferencia de ' + fmt(monto) + ' rechazada por saldo insuficiente');
+    err('tr-error', 'Saldo insuficiente. El movimiento quedó registrado como Rechazado.');
+    return;
+  }
+  u.disponible -= monto;
+  destino.disponible += monto;
+  const m = mover('Transferencia', u.cuenta, destino.cuenta, monto, 'Completada', nota);
+  alerta(u, 'Enviada ' + fmt(monto) + ' a ' + destino.nombre);
+  alerta(destino, 'Recibida ' + fmt(monto) + ' de ' + u.nombre);
+  err('tr-error', '');
+  ping(m.id + ' completada · ' + fmt(monto) + ' a ' + destino.nombre);
+  go('u-inicio');
+}
+
+function pintarPagos(){
+  el('b-pagos').innerHTML =
+    '<h2 class="d">Pagar</h2>' +
+    '<div class="card">' +
+      '<div style="color:var(--dim);font-size:13px">Disponible: <strong>' + fmt(sesion.disponible) + '</strong></div>' +
+      '<label for="pg-convenio">Convenio</label><select id="pg-convenio" name="convenio">' + CONVENIOS.map(c => '<option>' + c + '</option>').join('') + '</select>' +
+      '<label for="pg-ref">Referencia</label><input id="pg-ref" name="referencia" value="10993821" />' +
+      '<label for="pg-valor">Valor</label><input id="pg-valor" name="valor" inputmode="numeric" placeholder="95400" />' +
+      '<p id="pg-error" class="err" role="alert" aria-live="polite"></p>' +
+      '<div class="row"><button class="btn mint" onclick="pagar()">Confirmar pago</button></div>' +
+    '</div>';
+}
+
+function pagar(){
+  const u = sesion;
+  if (u.estado === 'bloqueada'){ ping('Tu cuenta está bloqueada'); salir(); return; }
+  const convenio = val('pg-convenio'), ref = val('pg-ref');
+  const valor = Math.round(Number(val('pg-valor')));
+  if (!ref){ err('pg-error', 'Escribe la referencia del convenio.'); return; }
+  if (!valor || valor <= 0){ err('pg-error', 'Escribe un valor mayor que cero.'); return; }
+  if (valor > u.disponible){
+    mover('Pago', u.cuenta, convenio, valor, 'Rechazada', 'Saldo insuficiente');
+    err('pg-error', 'Saldo insuficiente. El pago quedó Rechazado.');
+    return;
+  }
+  u.disponible -= valor;
+  const m = mover('Pago', u.cuenta, convenio, valor, 'Completada', 'Referencia ' + ref);
+  alerta(u, 'Pago a ' + convenio + ' por ' + fmt(valor));
+  err('pg-error', '');
+  ping('Pago ' + m.id + ' completado');
+  go('u-inicio');
+}
+
+function pintarBolsillos(){
+  const u = sesion;
+  el('b-bolsillos').innerHTML =
+    '<h2 class="d">Bolsillos</h2>' +
+    '<p style="color:var(--dim)">Disponible para mover: <strong>' + fmt(u.disponible) + '</strong></p>' +
+    '<p id="bl-error" class="err" role="alert" aria-live="polite"></p>' +
+    '<div class="grid">' +
+      u.bolsillos.map((b, i) =>
+        '<div class="card"><h3>' + esc(b.nombre) + '</h3><div class="d big" style="font-size:32px">' + fmt(b.saldo) + '</div>' +
+        '<label for="bl-m' + i + '">Monto</label><input id="bl-m' + i + '" inputmode="numeric" placeholder="100000" />' +
+        '<div class="row"><button class="chip" onclick="aportar(' + i + ')">Aportar</button>' +
+        '<button class="chip" onclick="retirar(' + i + ')">A disponible</button></div></div>').join('') +
+      '<div class="card"><h3>Nuevo</h3><label for="bl-nombre">Nombre del bolsillo</label>' +
+      '<input id="bl-nombre" name="bolsillo" placeholder="Ej. Estudio" />' +
+      '<button class="btn mint" style="margin-top:12px" onclick="crearBolsillo()">Crear</button></div>' +
+    '</div>';
+}
+
+function aportar(i){
+  const u = sesion, b = u.bolsillos[i];
+  if (u.estado === 'bloqueada'){ ping('Tu cuenta está bloqueada'); salir(); return; }
+  const monto = Math.round(Number(val('bl-m' + i)));
+  if (!monto || monto <= 0){ err('bl-error', 'Escribe un monto mayor que cero.'); return; }
+  if (monto > u.disponible){ err('bl-error', 'No tienes ese disponible. Te quedan ' + fmt(u.disponible) + '.'); return; }
+  u.disponible -= monto; b.saldo += monto;
+  mover('Bolsillo', u.cuenta, b.nombre, monto, 'Completada', 'Aporte a bolsillo');
+  err('bl-error', ''); ping('Aportaste ' + fmt(monto) + ' a ' + b.nombre);
+  pintarBolsillos();
+}
+function retirar(i){
+  const u = sesion, b = u.bolsillos[i];
+  if (u.estado === 'bloqueada'){ ping('Tu cuenta está bloqueada'); salir(); return; }
+  const monto = Math.round(Number(val('bl-m' + i)));
+  if (!monto || monto <= 0){ err('bl-error', 'Escribe un monto mayor que cero.'); return; }
+  if (monto > b.saldo){ err('bl-error', 'El bolsillo solo tiene ' + fmt(b.saldo) + '.'); return; }
+  b.saldo -= monto; u.disponible += monto;
+  mover('Bolsillo', b.nombre, u.cuenta, monto, 'Completada', 'Retiro de bolsillo');
+  err('bl-error', ''); ping('Pasaste ' + fmt(monto) + ' a tu disponible');
+  pintarBolsillos();
+}
+function crearBolsillo(){
+  if (sesion.estado === 'bloqueada'){ ping('Tu cuenta está bloqueada'); salir(); return; }
+  const nombre = val('bl-nombre');
+  if (!nombre){ err('bl-error', 'Ponle un nombre al bolsillo.'); return; }
+  if (sesion.bolsillos.some(b => b.nombre.toLowerCase() === nombre.toLowerCase())){
+    err('bl-error', 'Ya tienes un bolsillo con ese nombre.'); return;
+  }
+  sesion.bolsillos.push({nombre, saldo: 0});
+  err('bl-error', ''); ping('Bolsillo "' + nombre + '" creado');
+  pintarBolsillos();
+}
+
+function filaMov(m, propia){
+  const clase = m.estado === 'Completada' ? 'ok' : m.estado === 'Rechazada' ? 'bad' : 'warn';
+  const signo = propia && m.origen === propia && m.tipo !== 'Bolsillo' ? '−' : '';
+  return '<tr><td>' + esc(m.id) + '</td><td>' + fechaCorta(m.ts) + '</td><td>' + esc(m.tipo) + '</td><td>' + esc(m.origen) +
+    '</td><td>' + esc(m.destino) + '</td><td>' + signo + fmt(m.valor) + '</td><td><span class="st ' + clase + '">' + esc(m.estado) + '</span></td></tr>';
+}
+
+function pintarMovimientos(){
+  const lista = mios();
+  el('b-movimientos').innerHTML =
+    '<h2 class="d">Movimientos</h2>' +
+    '<div class="card"><table><thead><tr><th>ID</th><th>Fecha</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Valor</th><th>Estado</th></tr></thead><tbody>' +
+    (lista.map(m => filaMov(m, sesion.cuenta)).join('') || '<tr><td colspan="7">Todavía no tienes movimientos.</td></tr>') +
+    '</tbody></table></div>';
+}
+
+function pintarAlertas(){
+  el('b-alertas').innerHTML =
+    '<h2 class="d">Alertas</h2>' +
+    (sesion.alertas.map(a => '<div class="card" style="margin-bottom:10px"><p>' + esc(a.texto) + ' · ' + fechaCorta(a.ts) + '</p></div>').join('') ||
+     '<div class="card"><p>Sin alertas por ahora.</p></div>') +
+    /* RF-06 CA-06.2 — cambio de contraseña con notificación */
+    '<div class="card" style="margin-top:16px">' +
+      '<h3>Cambiar contraseña</h3>' +
+      '<p style="color:var(--dim);font-size:13px;margin:0 0 6px">Te llegará una notificación con la fecha y hora del cambio.</p>' +
+      '<label for="cp-actual">Contraseña actual</label>' +
+      '<input id="cp-actual" type="password" autocomplete="current-password" />' +
+      '<label for="cp-nueva">Nueva contraseña</label>' +
+      '<input id="cp-nueva" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" />' +
+      '<label for="cp-confirma">Confirmar nueva contraseña</label>' +
+      '<input id="cp-confirma" type="password" autocomplete="new-password" />' +
+      '<p id="cp-error" class="err" role="alert" aria-live="polite"></p>' +
+      '<div class="row"><button class="btn mint" onclick="cambiarPassword()">Guardar</button></div>' +
+    '</div>';
+}
+
+function cambiarPassword(){
+  const u = sesion;
+  if (u.estado === 'bloqueada'){ ping('Tu cuenta está bloqueada'); salir(); return; }
+  const actual = val('cp-actual'), nueva = val('cp-nueva'), confirma = val('cp-confirma');
+  if (!actual || !nueva || !confirma){ err('cp-error', 'Completa los tres campos.'); return; }
+  if (actual !== u.clave){ err('cp-error', 'La contraseña actual no coincide.'); return; }
+  if (nueva.length < 8){ err('cp-error', 'La nueva contraseña debe tener al menos 8 caracteres.'); return; }
+  if (nueva === actual){ err('cp-error', 'La nueva contraseña debe ser distinta a la actual.'); return; }
+  if (nueva !== confirma){ err('cp-error', 'La confirmación no coincide.'); return; }
+  u.clave = nueva;
+  const ahora = new Date();
+  /* RF-06 CA-06.2: notificación con fecha y hora */
+  alerta(u, 'Contraseña modificada el ' + fechaCorta(ahora));
+  err('cp-error', '');
+  ping('Contraseña actualizada');
+  pintarAlertas();
+}
+
+function pintarReportes(){
+  const d = new Date(), desde = new Date(d.getFullYear(), d.getMonth(), 1);
+  el('b-reportes').innerHTML =
+    '<h2 class="d">Exportar</h2>' +
+    '<div class="card">' +
+      '<label for="rp-desde">Desde</label><input id="rp-desde" name="desde" type="date" value="' + iso(desde) + '" />' +
+      '<label for="rp-hasta">Hasta</label><input id="rp-hasta" name="hasta" type="date" value="' + iso(d) + '" />' +
+      '<div class="row"><button class="btn mint" onclick="window.print()">PDF (imprimir)</button>' +
+      '<button class="btn ghost" onclick="exportarCSV(\'rp-desde\',\'rp-hasta\',false)">CSV</button></div>' +
+    '</div>';
+}
+
+function enRango(m, idDesde, idHasta){
+  const d = new Date(val(idDesde) + 'T00:00:00'), h = new Date(val(idHasta) + 'T23:59:59');
+  return m.ts >= d && m.ts <= h;
+}
+
+function exportarCSV(idDesde, idHasta, global){
+  const base = global ? BANCO.movimientos : mios();
+  const filas = base.filter(m => enRango(m, idDesde, idHasta));
+  if (!filas.length){ ping('No hay movimientos en ese rango'); return; }
+  const csv = ['ID;Fecha;Tipo;Origen;Destino;Valor;Estado']
+    .concat(filas.map(m => [m.id, m.ts.toLocaleString('es-CO'), m.tipo, m.origen, m.destino, m.valor, m.estado].join(';')))
+    .join('\n');
+  const url = URL.createObjectURL(new Blob(['﻿' + csv], {type: 'text/csv;charset=utf-8'}));
+  const a = document.createElement('a');
+  a.href = url; a.download = 'fintec-movimientos.csv'; a.click();
+  URL.revokeObjectURL(url);
+  ping(filas.length + ' movimientos exportados');
+}
+
+/* ---------- admin ---------- */
+function pintarAdmin(){
+  const q = (window.adminQ || '').toLowerCase();
+  /* RF-05 CA-05.1: buscar por documento, cuenta, correo o nombre */
+  const lista = clientes().filter(u => !q ||
+    u.nombre.toLowerCase().includes(q) ||
+    u.doc.toLowerCase().includes(q) ||
+    u.cuenta.toLowerCase().includes(q) ||
+    (u.correo || '').toLowerCase().includes(q));
+  const reversibles = BANCO.movimientos.filter(m => m.tipo === 'Transferencia' && m.estado === 'Completada');
+  el('b-admin').innerHTML =
+    '<h2 class="d">Control de cuentas</h2>' +
+    '<p style="color:var(--dim)">Buscar · bloquear · devolver o cancelar. El admin no altera saldos a mano.</p>' +
+    '<p id="ad-error" class="err" role="alert" aria-live="polite"></p>' +
+    '<div class="card">' +
+      '<label for="ad-busca">Documento, cuenta, correo o nombre</label>' +
+      '<div class="row"><input id="ad-busca" name="busqueda" value="' + esc(window.adminQ || '') + '" style="flex:1" onkeydown="if(event.key===\'Enter\')buscar()" />' +
+      '<button class="btn mint" onclick="buscar()">Buscar</button></div>' +
+      '<table><thead><tr><th>Usuario</th><th>Documento</th><th>Cuenta</th><th>Disponible</th><th>Estado</th><th></th></tr></thead><tbody>' +
+      (lista.map(u =>
+        '<tr><td>' + esc(u.nombre) + '</td><td>' + esc(u.doc) + '</td><td>' + esc(u.cuenta) + '</td><td>' + fmt(u.disponible) + '</td>' +
+        '<td><span class="st ' + (u.estado === 'activa' ? 'ok' : 'bad') + '">' + (u.estado === 'activa' ? 'Activa' : 'Bloqueada') + '</span></td>' +
+        '<td><button class="chip" data-doc="' + esc(u.doc) + '" onclick="alternarBloqueo(this.dataset.doc)">' + (u.estado === 'activa' ? 'Bloquear' : 'Desbloquear') + '</button></td></tr>').join('') ||
+       '<tr><td colspan="6">Ninguna cuenta coincide con la búsqueda.</td></tr>') +
+      '</tbody></table></div>' +
+    '<div class="card" style="margin-top:12px"><h3>Devoluciones y cancelaciones</h3>' +
+      '<table><tbody>' +
+      (reversibles.map(m =>
+        '<tr><td>' + esc(m.id) + ' · ' + fmt(m.valor) + ' · ' + esc(m.origen) + ' → ' + esc(m.destino) +
+          (m.revertida ? ' · <span class="st warn">Revertida</span>' : '') + '</td>' +
+        '<td>' +
+          '<button class="chip" ' + (m.revertida ? 'disabled' : '') + ' data-id="' + esc(m.id) + '" onclick="devolver(this.dataset.id)">Devolver</button> ' +
+          '<button class="chip" ' + (m.revertida ? 'disabled' : '') + ' data-id="' + esc(m.id) + '" onclick="cancelar(this.dataset.id)">Cancelar</button>' +
+        '</td></tr>').join('') ||
+       '<tr><td>No hay transferencias completadas para devolver.</td></tr>') +
+      '</tbody></table></div>';
+}
+function buscar(){ window.adminQ = val('ad-busca'); pintarAdmin(); }
+
+function alternarBloqueo(doc){
+  const u = BANCO.usuarios[doc];
+  u.estado = u.estado === 'activa' ? 'bloqueada' : 'activa';
+  alerta(u, u.estado === 'bloqueada' ? 'Tu cuenta fue bloqueada por el administrador' : 'Tu cuenta fue reactivada');
+  ping(u.nombre + ' · cuenta ' + u.estado);
+  /* RN-07: si el usuario bloqueado era el que tiene sesión activa, cerrarla */
+  if (sesion && sesion.doc === u.doc && u.estado === 'bloqueada'){
+    sesion = null; detenerInactividad(); go('login');
+    return;
+  }
+  pintarAdmin();
+}
+
+/* RF-05 / RN-05 — crear reversión que restablece saldos */
+function _reversar(id, estadoNuevo, prefijoNota, msgYaRevertido){
+  const m = BANCO.movimientos.find(x => x.id === id);
+  if (!m){ err('ad-error', 'Movimiento no encontrado.'); return null; }
+  if (m.revertida){ err('ad-error', msgYaRevertido); return null; }
+  const origen = porCuenta(m.origen), destino = porCuenta(m.destino);
+  if (!destino || destino.disponible < m.valor){
+    err('ad-error', 'La cuenta destino no tiene saldo suficiente para revertir ' + fmt(m.valor) + '.');
+    return null;
+  }
+  destino.disponible -= m.valor;
+  origen.disponible += m.valor;
+  m.revertida = true;
+  m.origenReversion = id;
+  /* Al cancelar, el movimiento original queda Cancelado. Al devolver, el original
+     conserva su estado Completada como rastro de auditoria. En ambos casos el
+     movimiento que repone la plata se registra Completado, para que el panel
+     contable lo vea. */
+  if (estadoNuevo === 'Cancelada') m.estado = 'Cancelada';
+  const r = mover(estadoNuevo === 'Cancelada' ? 'Cancelación' : 'Reversión',
+                  destino.cuenta, origen.cuenta, m.valor, 'Completada', prefijoNota + ' ' + m.id);
+  r.origenReversion = id;
+  return {m, r, origen, destino};
+}
+
+function devolver(id){
+  /* Esc.4 excepción: el mensaje es literal al de la especificación */
+  const res = _reversar(id, 'Completada', 'Devolución de', 'Este movimiento ya fue revertido.');
+  if (!res) return;
+  alerta(res.origen, 'Devolución recibida de ' + fmt(res.m.valor) + ' (' + res.m.id + ')');
+  alerta(res.destino, 'Se devolvió ' + fmt(res.m.valor) + ' por ' + res.m.id);
+  err('ad-error', '');
+  ping('Reversión ' + res.r.id + ' aplicada');
+  pintarAdmin();
+}
+
+function cancelar(id){
+  const res = _reversar(id, 'Cancelada', 'Cancelación de', 'Este movimiento ya fue devuelto o cancelado.');
+  if (!res) return;
+  alerta(res.origen, 'Movimiento ' + res.m.id + ' cancelado por el administrador · ' + fmt(res.m.valor));
+  alerta(res.destino, 'Se cancelaron ' + fmt(res.m.valor) + ' asociados a ' + res.m.id);
+  err('ad-error', '');
+  ping('Cancelación ' + res.r.id + ' registrada');
+  pintarAdmin();
+}
+
+/* ---------- contable ---------- */
+function pintarContable(){
+  /* RF-08 CA-08.1 — filtro por rango de fechas */
+  const hoy = new Date();
+  if (!window.ctbRango){
+    window.ctbRango = { desde: iso(new Date(hoy.getFullYear(), hoy.getMonth(), 1)), hasta: iso(hoy) };
+  }
+  const r = window.ctbRango;
+  const d = new Date(r.desde + 'T00:00:00'), h = new Date(r.hasta + 'T23:59:59');
+  const comp = BANCO.movimientos.filter(m => m.estado === 'Completada' && m.ts >= d && m.ts <= h);
+  const suma = t => comp.filter(m => m.tipo === t).reduce((s,m) => s + m.valor, 0);
+  const cuantos = t => comp.filter(m => m.tipo === t).length;
+  const transf = suma('Transferencia'), pagos = suma('Pago'), bols = suma('Bolsillo'), rev = suma('Reversión');
+  /* Ingresos = plata acreditada a cuentas FINTEC (transferencias recibidas)
+     Egresos  = plata que sale de cuentas FINTEC hacia terceros (pagos a convenios)
+     Saldo neto movilizado = ingresos - egresos */
+  const ingresos = comp.filter(m => m.tipo === 'Transferencia' && porCuenta(m.destino)).reduce((s,m) => s + m.valor, 0);
+  const egresos = pagos;
+  const neto = ingresos - egresos;
+
+  el('b-contable').innerHTML =
+    '<h2 class="d">Flujo global</h2>' +
+    '<p style="color:var(--dim)">Solo lectura · ' + comp.length + ' movimientos completados en el rango</p>' +
+    '<div class="card">' +
+      '<label for="ct-desde">Desde</label><input id="ct-desde" type="date" value="' + r.desde + '" />' +
+      '<label for="ct-hasta">Hasta</label><input id="ct-hasta" type="date" value="' + r.hasta + '" />' +
+      '<div class="row"><button class="btn mint" onclick="aplicarRangoContable()">Aplicar</button>' +
+      '<button class="btn ghost" onclick="resetRangoContable()">Mes actual</button></div>' +
+    '</div>' +
+    '<div class="grid" style="margin-top:12px">' +
+      '<div class="card"><div style="color:var(--dim)">Ingresos (acreditaciones)</div><div class="d" style="font-size:30px">' + fmt(ingresos) + '</div></div>' +
+      '<div class="card"><div style="color:var(--dim)">Egresos (pagos a convenios)</div><div class="d" style="font-size:30px">' + fmt(egresos) + '</div></div>' +
+      '<div class="card" style="border-color:#1757D8"><div style="color:var(--blue)">Saldo neto movilizado</div><div class="d" style="font-size:30px">' + fmt(neto) + '</div></div>' +
+    '</div>' +
+    /* CA-08.2 — desglose por tipo de transacción */
+    '<div class="card" style="margin-top:12px"><h3>Desglose por tipo</h3>' +
+      '<table><thead><tr><th>Tipo</th><th>Ops</th><th>Monto</th></tr></thead><tbody>' +
+      ['Transferencia','Pago','Bolsillo','Reversión','Cancelación'].map(t =>
+        '<tr><td>' + t + '</td><td>' + cuantos(t) + '</td><td>' + fmt(suma(t)) + '</td></tr>').join('') +
+    '</tbody></table></div>' +
+    '<div class="card" style="margin-top:12px"><h3>Saldo por cliente (actual)</h3><table><thead><tr><th>Cliente</th><th>Disponible</th><th>Bolsillos</th><th>Total</th></tr></thead><tbody>' +
+      clientes().map(u => '<tr><td>' + esc(u.nombre) + '</td><td>' + fmt(u.disponible) + '</td><td>' + fmt(totalBolsillos(u)) + '</td><td>' + fmt(u.disponible + totalBolsillos(u)) + '</td></tr>').join('') +
+    '</tbody></table></div>';
+}
+
+function aplicarRangoContable(){
+  const desde = val('ct-desde'), hasta = val('ct-hasta');
+  if (!desde || !hasta){ ping('Selecciona ambas fechas'); return; }
+  if (new Date(desde) > new Date(hasta)){ ping('La fecha "Desde" debe ser menor o igual a "Hasta"'); return; }
+  window.ctbRango = { desde, hasta };
+  pintarContable();
+}
+function resetRangoContable(){
+  const hoy = new Date();
+  window.ctbRango = { desde: iso(new Date(hoy.getFullYear(), hoy.getMonth(), 1)), hasta: iso(hoy) };
+  pintarContable();
+}
+
+function pintarCReportes(){
+  const d = new Date(), desde = new Date(d.getFullYear(), d.getMonth(), 1);
+  el('b-creportes').innerHTML =
+    '<h2 class="d">Reporte financiero</h2>' +
+    '<div class="card">' +
+      '<label for="cr-desde">Desde</label><input id="cr-desde" name="desde" type="date" value="' + iso(desde) + '" />' +
+      '<label for="cr-hasta">Hasta</label><input id="cr-hasta" name="hasta" type="date" value="' + iso(d) + '" />' +
+      '<div class="row"><button class="btn mint" onclick="window.print()">PDF (imprimir)</button>' +
+      '<button class="btn ghost" onclick="exportarCSV(\'cr-desde\',\'cr-hasta\',true)">CSV global</button></div>' +
+      '<p style="color:var(--dim);font-size:13px">El CSV incluye los movimientos de todas las cuentas en el rango.</p>' +
+    '</div>';
+}
+
+/* ---------- navegacion ---------- */
+const H = '<div class="d">FINTEC</div>' +
+    '<nav>' +
+      '<button data-g="u-inicio">Inicio</button>' +
+      '<button data-g="u-transferir">Enviar</button>' +
+      '<button data-g="u-bolsillos">Bolsillos</button>' +
+      '<button data-g="u-pagos">Pagar</button>' +
+      '<button data-g="u-movimientos">Movimientos</button>' +
+      '<button data-g="u-notificaciones">Alertas</button>' +
+      '<button data-g="u-reportes">Exportar</button>' +
+      '<button data-g="salir">Salir</button>' +
+    '</nav>';
+
+const PINTORES = {
+  'u-inicio': pintarInicio, 'u-transferir': pintarTransferir, 'u-bolsillos': pintarBolsillos,
+  'u-pagos': pintarPagos, 'u-movimientos': pintarMovimientos, 'u-notificaciones': pintarAlertas,
+  'u-reportes': pintarReportes, 'a-panel': pintarAdmin, 'c-panel': pintarContable, 'c-reportes': pintarCReportes
+};
+const PRIVADAS = Object.keys(PINTORES);
+/* RF-02 / RN-06 / RN-07 — pantalla → rol requerido */
+const ROL_PANTALLA = {
+  'u-inicio':'usuario','u-transferir':'usuario','u-bolsillos':'usuario',
+  'u-pagos':'usuario','u-movimientos':'usuario','u-notificaciones':'usuario',
+  'u-reportes':'usuario',
+  'a-panel':'admin',
+  'c-panel':'contable','c-reportes':'contable'
+};
+
+function cabecera(id){
+  document.querySelectorAll('#u-inicio header, #u-transferir header, #u-bolsillos header, #u-pagos header, #u-movimientos header, #u-notificaciones header, #u-reportes header').forEach(h => {
+    h.innerHTML = H;
+    h.querySelectorAll('[data-g]').forEach(b => {
+      if (b.dataset.g === id) b.classList.add('on');
+      b.onclick = () => b.dataset.g === 'salir' ? salir() : go(b.dataset.g);
+    });
+  });
+}
+
+function go(id){
+  if (PRIVADAS.includes(id)){
+    if (!sesion){ id = 'login'; ping('Inicia sesión para continuar'); }
+    else if (sesion.estado === 'bloqueada'){
+      ping('Tu cuenta fue bloqueada. Cerramos la sesión.');
+      sesion = null; detenerInactividad(); id = 'login';
+    }
+    else {
+      const rolReq = ROL_PANTALLA[id];
+      if (rolReq && sesion.rol !== rolReq){
+        ping('No tienes acceso a esa sección');
+        id = sesion.rol === 'admin' ? 'a-panel' : sesion.rol === 'contable' ? 'c-panel' : 'u-inicio';
+      }
+    }
+  }
+  if (id === 'login'){ lgError(''); if (el('lg-pass')) el('lg-pass').value = ''; }
+  if (PINTORES[id]) PINTORES[id]();
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  el(id).classList.add('active');
+  cabecera(id);
+  scrollTo(0, 0);
+  if (sesion) reiniciarInactividad();
+}
+
+/* ---------- RNF-01 cierre automático por inactividad (10 min) ---------- */
+const INACTIVIDAD_MS = 10 * 60 * 1000;
+let temporizadorInactividad = null;
+function reiniciarInactividad(){
+  clearTimeout(temporizadorInactividad);
+  if (!sesion) return;
+  temporizadorInactividad = setTimeout(() => {
+    if (sesion){ ping('Sesión cerrada por inactividad'); salir(); }
+  }, INACTIVIDAD_MS);
+}
+function detenerInactividad(){ clearTimeout(temporizadorInactividad); temporizadorInactividad = null; }
+['click','keydown','scroll','mousemove','touchstart'].forEach(ev =>
+  document.addEventListener(ev, () => { if (sesion) reiniciarInactividad(); }, {passive:true})
+);
+
+function ping(m){
+  const t = el('toast');
+  t.textContent = m; t.style.display = 'block';
+  clearTimeout(ping.t);
+  ping.t = setTimeout(() => t.style.display = 'none', 2600);
+}
+
+function simular(){
+  const monto = +el('monto').value, plazo = +el('plazo').value, r = 0.018;
+  el('montoLbl').textContent = fmt(monto);
+  el('plazoLbl').textContent = plazo + ' meses';
+  el('cuota').textContent = fmt(monto * r / (1 - Math.pow(1 + r, -plazo)));
+}
+
+cabecera('u-inicio');
+simular();
+</script>
+</body>
+</html>

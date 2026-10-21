@@ -1,0 +1,13 @@
+# dependencias
+node_modules/
+
+# artefacto generado desde el producto en cada ejecucion de pruebas
+calidad/fintec.core.generated.js
+
+# reporte de cobertura (se regenera con npm run cobertura)
+calidad/evidencia/coverage/
+
+# temporales de Office y Windows
+~$*
+Thumbs.db
+desktop.ini
