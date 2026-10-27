@@ -8,8 +8,10 @@ verificarConfig();
 
 const app = crearApp();
 
-const servidor = app.listen(config.port, () => {
-  console.log(`[fintec-api] escuchando en http://localhost:${config.port} (${config.entorno})`);
+/* 0.0.0.0: Render no detecta el puerto si el proceso escucha solo
+   en 127.0.0.1. En local sigue siendo alcanzable por localhost. */
+const servidor = app.listen(config.port, '0.0.0.0', () => {
+  console.log(`[fintec-api] escuchando en http://0.0.0.0:${config.port} (${config.entorno})`);
 });
 
 /* Comprobacion de conectividad: si la base no responde se avisa pero

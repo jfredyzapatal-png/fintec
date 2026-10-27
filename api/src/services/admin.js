@@ -20,10 +20,15 @@ export async function buscarUsuarios({ q } = {}) {
   const { rows } = await query(
     `SELECT u.doc, u.nombre, u.tipo, u.correo, u.cuenta, u.estado,
             u.disponible, u.tope_diario, u.tope_mensual,
-            COALESCE(b.total, 0) AS total_bolsillos
+            COALESCE(b.total, 0) AS total_bolsillos,
+            COALESCE(b.bolsillos, '[]'::json) AS bolsillos
      FROM usuarios u
      LEFT JOIN (
-       SELECT usuario_doc, SUM(saldo) AS total FROM bolsillos GROUP BY usuario_doc
+       SELECT usuario_doc,
+              SUM(saldo) AS total,
+              json_agg(json_build_object('id', id, 'nombre', nombre, 'saldo', saldo) ORDER BY id) AS bolsillos
+       FROM bolsillos
+       GROUP BY usuario_doc
      ) b ON b.usuario_doc = u.doc
      WHERE u.rol = 'usuario'
        AND ($1 = '' OR lower(u.nombre) LIKE $2 OR lower(u.doc) LIKE $2
@@ -32,19 +37,28 @@ export async function buscarUsuarios({ q } = {}) {
     [termino, patron],
   );
 
-  return rows.map((u) => ({
-    doc: u.doc,
-    nombre: u.nombre,
-    tipo: u.tipo,
-    correo: u.correo,
-    cuenta: u.cuenta,
-    estado: u.estado,
-    disponible: Number(u.disponible),
-    totalBolsillos: Number(u.total_bolsillos),
-    total: Number(u.disponible) + Number(u.total_bolsillos),
-    topeDiario: Number(u.tope_diario),
-    topeMensual: Number(u.tope_mensual),
-  }));
+  return rows.map((u) => {
+    const bolsillos = (Array.isArray(u.bolsillos) ? u.bolsillos : []).map((b) => ({
+      id: Number(b.id),
+      nombre: b.nombre,
+      saldo: Number(b.saldo),
+    }));
+    const totalBolsillos = Number(u.total_bolsillos);
+    return {
+      doc: u.doc,
+      nombre: u.nombre,
+      tipo: u.tipo,
+      correo: u.correo,
+      cuenta: u.cuenta,
+      estado: u.estado,
+      disponible: Number(u.disponible),
+      bolsillos,
+      totalBolsillos,
+      total: Number(u.disponible) + totalBolsillos,
+      topeDiario: Number(u.tope_diario),
+      topeMensual: Number(u.tope_mensual),
+    };
+  });
 }
 
 /* PATCH /api/admin/usuarios/:doc/estado — RN-07 */

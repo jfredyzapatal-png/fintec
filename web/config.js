@@ -6,10 +6,12 @@
    ============================================================ */
 window.FINTEC_CONFIG = {
   /* URL base de la API, sin barra final.
-     Local:      'http://localhost:3000'
-     Produccion: 'https://api.fintec.example.com'
-     Si la API se sirve en el mismo origen que este front, deja ''. */
-  API_URL: 'http://localhost:3000',
+     En local el servidor escucha en el puerto 4000 (api/src/config.js).
+     En cualquier otro host se usa la API desplegada en Render.
+     Si Render asigna otro hostname, cambia solo la cadena de produccion. */
+  API_URL: (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:4000'
+    : 'https://fintec-api.onrender.com',
 
   /* Milisegundos antes de abandonar una peticion que no responde.
      OJO: en el plan gratuito de Render el servicio se duerme tras 15 minutos

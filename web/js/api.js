@@ -247,6 +247,11 @@
     /* ---------- contable ---------- */
     contableResumen: function (desde, hasta) {
       return pedir('GET', '/api/contable/resumen' + qs({ desde: desde, hasta: hasta }));
+    },
+    /* Historial global de solo lectura. El contable no puede llamar
+       /api/admin/movimientos (403). Mismos campos que ese listado. */
+    contableMovimientos: function (desde, hasta) {
+      return pedir('GET', '/api/contable/movimientos' + qs({ desde: desde, hasta: hasta }));
     }
   };
 

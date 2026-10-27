@@ -288,7 +288,7 @@ function confirmarTransferencia() {
   const p = pendiente;
   pendiente = null;
   API.transferir(p.destino, p.monto, p.nota).then(r => {
-    const id = primero(r || {}, ['id'], '');
+    const id = idMovimiento(r);
     cancelarTransferencia();
     ping((id ? id + ' completada · ' : 'Transferencia completada · ') + fmt(p.monto));
     go('u-inicio');
@@ -323,7 +323,7 @@ function pagar() {
   if (!valor || valor <= 0) { err('pg-error', 'Escribe un valor mayor que cero.'); return; }
   err('pg-error', '');
   API.pagar(convenio, ref, valor).then(r => {
-    const id = primero(r || {}, ['id'], '');
+    const id = idMovimiento(r);
     ping(id ? 'Pago ' + id + ' completado' : 'Pago completado');
     go('u-inicio');
   }).catch(e => { if (!sesionVencida(e)) err('pg-error', mensajeError(e)); });
@@ -484,10 +484,14 @@ function exportarCSV(idDesde, idHasta, global) {
   const desde = val(idDesde), hasta = val(idHasta);
   if (!desde || !hasta) { ping('Selecciona ambas fechas'); return; }
   if (new Date(desde) > new Date(hasta)) { ping('La fecha "Desde" debe ser menor o igual a "Hasta"'); return; }
-  const peticion = global
-    ? API.adminMovimientos({}).then(r => comoLista(r, ['movimientos']).map(normMov)
-        .filter(m => enRango(m, desde, hasta)))
-    : API.movimientos(desde, hasta).then(r => comoLista(r, ['movimientos']).map(normMov));
+  const aLista = r => comoLista(r, ['movimientos']).map(normMov);
+  /* El CSV global del contable no puede usar la ruta de admin (403).
+     Esa ruta filtra por fechas en el servidor; la de admin, aqui. */
+  const peticion = !global
+    ? API.movimientos(desde, hasta).then(aLista)
+    : (sesion && sesion.rol === 'contable'
+        ? API.contableMovimientos(desde, hasta).then(aLista)
+        : API.adminMovimientos({}).then(r => aLista(r).filter(m => enRango(m, desde, hasta))));
 
   peticion.then(filas => {
     if (!filas.length) { ping('No hay movimientos en ese rango'); return; }
@@ -513,6 +517,8 @@ function enRango(m, desde, hasta) {
 let adminCache = [];
 
 function normUsuario(u) {
+  const bolsillos = comoLista(primero(u, ['bolsillos'], []), ['bolsillos']).map(normBolsillo);
+  const sumaBolsillos = bolsillos.reduce((s, b) => s + b.saldo, 0);
   return {
     doc: primero(u, ['doc', 'documento'], ''),
     nombre: primero(u, ['nombre'], ''),
@@ -523,8 +529,17 @@ function normUsuario(u) {
     correo: primero(u, ['correo'], ''),
     topeDiario: num(primero(u, ['topeDiario'], 0)),
     topeMensual: num(primero(u, ['topeMensual'], 0)),
-    bolsillos: comoLista(primero(u, ['bolsillos'], []), ['bolsillos']).map(normBolsillo)
+    bolsillos: bolsillos,
+    totalBolsillos: bolsillos.length ? sumaBolsillos : num(primero(u, ['totalBolsillos', 'total_bolsillos'], 0))
   };
+}
+
+/* La API anida el codigo TX-#### en `movimiento`, no en la raiz. */
+function idMovimiento(r) {
+  if (!r || typeof r !== 'object') return '';
+  const directo = primero(r, ['id', 'codigo'], '');
+  if (directo) return directo;
+  return primero(r.movimiento || {}, ['id', 'codigo'], '');
 }
 
 function pintarAdmin() {
@@ -545,7 +560,7 @@ function pintarAdmin() {
 
     const activas = universo.filter(u => u.estado === 'activa').length;
     const bloqueadas = universo.length - activas;
-    const custodia = universo.reduce((t, u) => t + u.disponible + u.bolsillos.reduce((s, b) => s + b.saldo, 0), 0);
+    const custodia = universo.reduce((t, u) => t + u.disponible + u.totalBolsillos, 0);
     const ahora = new Date();
     const delDia = movimientos.filter(m => {
       const t = new Date(m.ts);
@@ -704,7 +719,7 @@ function alternarBloqueo(doc) {
 function devolver(id) {
   err('ad-error', '');
   API.adminDevolucion(id).then(r => {
-    const nuevo = primero(r || {}, ['id'], '');
+    const nuevo = idMovimiento(r);
     ping(nuevo ? 'Reversión ' + nuevo + ' aplicada' : 'Reversión aplicada');
     pintarAdmin();
   }).catch(e => { if (!sesionVencida(e)) err('ad-error', mensajeError(e)); });
@@ -713,7 +728,7 @@ function devolver(id) {
 function cancelar(id) {
   err('ad-error', '');
   API.adminCancelacion(id).then(r => {
-    const nuevo = primero(r || {}, ['id'], '');
+    const nuevo = idMovimiento(r);
     ping(nuevo ? 'Cancelación ' + nuevo + ' registrada' : 'Cancelación registrada');
     pintarAdmin();
   }).catch(e => { if (!sesionVencida(e)) err('ad-error', mensajeError(e)); });
