@@ -37,9 +37,9 @@ export const NOMBRES = {
   hipoteca: 'hipoteca',
 };
 
-const MONTO_MIN  =    500000;
-const MONTO_MAX  =  20000000;
-const PLAZOS_OK  = [12, 24, 36, 48];
+export const MONTO_MIN  =    500000;
+export const MONTO_MAX  =  20000000;
+export const PLAZOS_OK  = [12, 24, 36, 48];
 const CUENTA_CREDITO = {
   libre:    'CREDITO-LIBRE',
   vehiculo: 'CREDITO-VEHICULO',
@@ -56,7 +56,9 @@ export function calcularCuota(monto, plazoMeses, tasaMensual) {
   return round(cuota);
 }
 
-function validarSolicitud({ tipo, monto, plazo }) {
+/* Pura: valida el payload de solicitud de credito. Devuelve null si todo
+   bien o el mensaje de error. Se exporta para poder probarla sin PostgreSQL. */
+export function validarSolicitud({ tipo, monto, plazo }) {
   if (!(tipo in TASAS)) {
     return 'Tipo de crédito inválido (libre, vehiculo o hipoteca).';
   }
@@ -69,6 +71,45 @@ function validarSolicitud({ tipo, monto, plazo }) {
     return 'El plazo debe ser 12, 24, 36 o 48 meses.';
   }
   return null;
+}
+
+/* Pura: calcula el efecto de un pago (cuota o total) sobre un credito.
+   Devuelve el valor a cobrar, el nuevo saldo, el nuevo estado y los
+   contadores actualizados. No toca la base: la unica razon de que esto
+   viva aqui es poder probar la aritmetica y la transicion de estado sin
+   PostgreSQL. El servicio llama esta funcion dentro de la transaccion y
+   luego persiste el resultado. */
+export function planearPago(credito, modo) {
+  const saldoPendiente = Number(credito.saldo_pendiente);
+  const cuotaFija = Number(credito.cuota);
+  const cuotasPagadas = Number(credito.cuotas_pagadas);
+  const plazo = Number(credito.plazo_meses);
+  const nombreTipo = NOMBRES[credito.tipo] || credito.tipo;
+
+  if (modo === 'cuota') {
+    // La ultima cuota puede ser menor que la cuota regular por redondeo
+    const valor = Math.min(cuotaFija, saldoPendiente);
+    const nuevoSaldo = round(saldoPendiente - valor);
+    const nuevasPagadas = cuotasPagadas + 1;
+    return {
+      valor,
+      nuevoSaldo,
+      nuevasPagadas,
+      nuevoEstado: nuevoSaldo === 0 ? 'pagado' : 'activo',
+      notaMov: `Cuota ${nuevasPagadas}/${plazo} crédito ${nombreTipo}`,
+      notaAlerta: `Pagaste ${fmt(valor)} (cuota ${nuevasPagadas}/${plazo}) de tu crédito ${nombreTipo}`,
+    };
+  }
+  // modo === 'total'
+  const valor = saldoPendiente;
+  return {
+    valor,
+    nuevoSaldo: 0,
+    nuevasPagadas: cuotasPagadas,
+    nuevoEstado: 'pagado',
+    notaMov: `Pago total crédito ${nombreTipo}`,
+    notaAlerta: `Pagaste el total (${fmt(valor)}) de tu crédito ${nombreTipo}`,
+  };
 }
 
 function creditoPublico(c) {
@@ -196,43 +237,22 @@ async function pagarCredito(usuario, idCredito, modo) {
       throw malaPeticion('Tu cuenta está bloqueada y no puede pagar.');
     }
 
-    const saldoPendiente = Number(c.saldo_pendiente);
-    const cuotaFija = Number(c.cuota);
+    const plan = planearPago(c, modo);
 
-    let valor;
-    let notaMov;
-    let notaAlerta;
-    let nuevasPagadas = Number(c.cuotas_pagadas);
-
-    if (modo === 'cuota') {
-      // La ultima cuota puede ser menor que la cuota regular
-      valor = Math.min(cuotaFija, saldoPendiente);
-      nuevasPagadas += 1;
-      notaMov = `Cuota ${nuevasPagadas}/${c.plazo_meses} crédito ${NOMBRES[c.tipo]}`;
-      notaAlerta = `Pagaste ${fmt(valor)} (cuota ${nuevasPagadas}/${c.plazo_meses}) de tu crédito ${NOMBRES[c.tipo]}`;
-    } else {
-      valor = saldoPendiente;
-      notaMov = `Pago total crédito ${NOMBRES[c.tipo]}`;
-      notaAlerta = `Pagaste el total (${fmt(valor)}) de tu crédito ${NOMBRES[c.tipo]}`;
-    }
-
-    if (Number(u.disponible) < valor) {
+    if (Number(u.disponible) < plan.valor) {
       throw malaPeticion(
-        `Saldo insuficiente. Para pagar ${fmt(valor)} necesitas al menos ese disponible.`,
+        `Saldo insuficiente. Para pagar ${fmt(plan.valor)} necesitas al menos ese disponible.`,
       );
     }
 
     const { rowCount } = await cliente.query(
       `UPDATE usuarios SET disponible = disponible - $2
        WHERE doc = $1 AND disponible >= $2`,
-      [u.doc, valor],
+      [u.doc, plan.valor],
     );
     if (rowCount !== 1) {
       throw malaPeticion('Saldo insuficiente. El pago no se realizó.');
     }
-
-    const nuevoSaldo = round(saldoPendiente - valor);
-    const nuevoEstado = nuevoSaldo === 0 ? 'pagado' : 'activo';
 
     const { rows: upd } = await cliente.query(
       `UPDATE creditos
@@ -242,7 +262,7 @@ async function pagarCredito(usuario, idCredito, modo) {
              cerrado_en      = CASE WHEN $4 = 'pagado' THEN now() ELSE cerrado_en END
        WHERE id = $1
        RETURNING *`,
-      [c.id, nuevoSaldo, nuevasPagadas, nuevoEstado],
+      [c.id, plan.nuevoSaldo, plan.nuevasPagadas, plan.nuevoEstado],
     );
 
     const m = await insertarMovimiento(cliente, {
@@ -250,20 +270,20 @@ async function pagarCredito(usuario, idCredito, modo) {
       estado: 'Completada',
       origen: u.cuenta,
       destino: CUENTA_CREDITO[c.tipo],
-      valor,
-      nota: notaMov,
+      valor: plan.valor,
+      nota: plan.notaMov,
     });
 
     await insertarAlerta(cliente, u.doc,
-      nuevoEstado === 'pagado'
-        ? `${notaAlerta}. ¡Credito cerrado!`
-        : `${notaAlerta}. Saldo pendiente: ${fmt(nuevoSaldo)}`,
+      plan.nuevoEstado === 'pagado'
+        ? `${plan.notaAlerta}. ¡Credito cerrado!`
+        : `${plan.notaAlerta}. Saldo pendiente: ${fmt(plan.nuevoSaldo)}`,
     );
 
     return {
       credito: creditoPublico(upd[0]),
       movimiento: movimientoPublico(m),
-      disponible: Number(u.disponible) - valor,
+      disponible: Number(u.disponible) - plan.valor,
     };
   });
 }

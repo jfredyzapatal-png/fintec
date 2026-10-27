@@ -16,19 +16,19 @@ Render + 2 suites de prueba.
 
 | Métrica | Resultado |
 |---|---|
-| **Casos del plan ejecutados y aprobados** | 51/51 Vitest contra prototipo · 51/51 `node:test` contra reglas del API ✅ |
+| **Casos del plan ejecutados y aprobados** | 51/51 Vitest contra prototipo · 82/82 `node:test` contra reglas del API (incluye créditos) ✅ |
 | **Cobertura reportada** | 89,41 % sentencias · 82,19 % ramas · 84,21 % funciones (prototipo) |
 | **Requisitos funcionales con trazabilidad completa** | RF-01…RF-08: 8/8 ✅ |
 | **Requisitos no funcionales verificables cerrados** | RNF-01, RNF-02: 2/2 ✅ |
 | **Reglas de negocio verificables** | RN-01…RN-07: 7/7 ✅ |
 | **Defectos cerrados confirmados** | 13/13 D-01…D-13 ✅ |
-| **Gap documentado** | RF-09 (créditos v1.1.0) **no cubierto por pruebas automatizadas** ⚠️ |
-| **Veredicto global** | **CONFORME** con el plan original + 1 brecha explícita (créditos) y 3 recomendaciones de refuerzo |
+| **Gap antes de esta revisión** | RF-09 (créditos v1.1.0) sin pruebas automatizadas — **cerrado**, ver §6 |
+| **Veredicto global** | **CONFORME** con el plan original + créditos cubiertos por 31 pruebas unitarias |
 
-El sistema entregado cumple todo lo que el plan de calidad exige. La única
-desviación es que el módulo nuevo de créditos (fuera del alcance del plan
-original) no tiene pruebas automatizadas de su propio nivel; esta revisión
-propone cómo cerrar esa brecha.
+El sistema entregado cumple todo lo que el plan de calidad exige. El módulo
+nuevo de créditos (añadido en v1.1.0, fuera del alcance del plan original)
+quedó cubierto por una suite dedicada que replica CP-49, CP-50, CP-51 y la
+parte determinista de CP-52.
 
 ---
 
@@ -72,7 +72,7 @@ dónde vive cada regla.
 | **RN-06** Contable es solo lectura | CP-36b | `PERMISOS.contable` sin escritura + `soloLecturaContable` como red adicional | `api/test/roles.test.js` | ✅ |
 | **RN-07** Cuenta bloqueada no transacciona ni recibe | CP-06, CP-08, CP-15 | `services/auth.js:login` + relectura en `middleware/auth` + chequeo en todos los servicios de dinero + `evaluarTransferencia` rechaza destino bloqueado | prototipo | ✅ |
 | **Rol / seguridad** (bypass en el cliente) | CP-36, CP-36b | `ROL_PANTALLA` en el cliente (comodidad) + autorización real en `middleware/roles.js` | `api/test/roles.test.js` | ✅ |
-| **🆕 RF-09** Créditos (v1.1.0) | **no estaba en el plan** | `services/creditos.js:solicitar/listar/pagarCuota/pagarTotal` + migración aditiva + tabla `creditos` con invariante | **❌ ningún test unitario**, solo e2e manual | ⚠️ **Brecha identificada** |
+| **🆕 RF-09** Créditos (v1.1.0) | CP-49, CP-50, CP-51, CP-52 (añadidos por esta revisión) | `services/creditos.js:solicitar/listar/pagarCuota/pagarTotal` + migración aditiva + tabla `creditos` con invariante | `api/test/creditos.test.js` — **31 pruebas** sobre `calcularCuota`, `validarSolicitud`, `planearPago` | ✅ |
 
 ---
 
@@ -239,16 +239,28 @@ Intereses efectivos:           $1.272.880 (coincide con fórmula)
 
 Datos de prueba borrados tras verificar (`clean_credit_test.mjs`).
 
-### Brecha explícita
+### Pruebas automatizadas añadidas (CP-49, CP-50, CP-51, CP-52) ✅
 
-**No hay pruebas automatizadas** del módulo de créditos. En términos del plan:
+Para cerrar la brecha se extrajeron tres funciones puras de
+`services/creditos.js` y se añadió `api/test/creditos.test.js` (31 pruebas):
 
-- 0 casos CP-49, CP-50, … dedicados a créditos.
-- La función `calcularCuota` de `services/creditos.js` no se prueba en `node:test`.
-- Las validaciones (`tipo` inválido, `monto` fuera de rango, `plazo` no permitido) solo se verificaron contra producción, no en una suite reproducible.
-- No hay prueba de concurrencia: dos pagos simultáneos del mismo crédito.
+- **`calcularCuota`** — 5 pruebas sobre la fórmula de amortización francesa,
+  incluyendo propiedades (total > principal con tasa > 0; hipoteca < vehículo
+  < libre a igual plazo).
+- **`validarSolicitud`** — 10 pruebas sobre todas las ramas: tipo inválido,
+  monto fuera de rango (bordes exactos MIN y MAX), monto negativo / no numérico,
+  plazo fuera de `{12, 24, 36, 48}`.
+- **`planearPago`** — 11 pruebas sobre el cálculo de cuota, el ajuste de la
+  última cuota (`Math.min(cuotaFija, saldoPendiente)`), la transición
+  `activo → pagado` cuando el saldo llega a 0, el nombre con tilde correcto en
+  la nota, y la **invariante del esquema** `(estado = 'pagado') = (saldo = 0)`
+  verificada a lo largo de las 12 cuotas de un crédito simulado.
+- **CP-52 (concurrencia)** — 2 pruebas sobre la parte determinista: `planearPago`
+  sobre un crédito ya pagado produce `valor = 0` tanto en modo cuota como total,
+  es decir el perdedor de la carrera no mueve dinero. El `FOR UPDATE` real sigue
+  requiriendo PostgreSQL para medirlo (documentado en el archivo).
 
-**Recomendación §9.1** cubre cómo cerrarla.
+**Resultado:** `cd api && npm test` → **82/82 OK** (51 originales + 31 nuevos).
 
 ---
 
@@ -272,11 +284,11 @@ end-to-end en producción:
 
 ## 8. Hallazgos de la revisión
 
-### H-01 — Brecha de pruebas del módulo de créditos (⚠️ principal)
-El módulo de créditos v1.1.0 funciona correctamente y pasó verificación e2e,
-pero no tiene pruebas automatizadas a nivel unitario. Si alguien modifica
-`calcularCuota` o la lógica de concurrencia en `pagarCredito`, ninguna suite
-lo detectará.
+### H-01 — Brecha de pruebas del módulo de créditos ✅ **CERRADA**
+El módulo tenía solo verificación e2e manual. Esta revisión extrajo tres
+funciones puras (`calcularCuota`, `validarSolicitud`, `planearPago`) y añadió
+`api/test/creditos.test.js` con 31 pruebas que cubren CP-49, CP-50, CP-51 y la
+parte determinista de CP-52. **Resultado: 82/82 en `npm test`**.
 
 ### H-02 — Portabilidad no re-verificada tras el despliegue
 El plan exige verificación en las dos últimas versiones estables de Chrome,
@@ -309,26 +321,18 @@ ver esas etiquetas.
 
 ## 9. Recomendaciones
 
-### 9.1 Añadir pruebas automatizadas de créditos (prioridad: media)
+### 9.1 Pruebas automatizadas de créditos ✅ **IMPLEMENTADAS**
 
-Al menos tres bloques, en `api/test/creditos.test.js` con `node:test`:
+`api/test/creditos.test.js` — 31 pruebas que cubren `calcularCuota`,
+`validarSolicitud` y `planearPago`. Para habilitarlas se refactorizó
+`services/creditos.js` extrayendo `planearPago(credito, modo)` como función
+pura, y se exportaron las constantes `MONTO_MIN`, `MONTO_MAX`, `PLAZOS_OK` y
+la validación `validarSolicitud`. El servicio consume `planearPago` como
+única fuente de verdad para la aritmética de pagos.
 
-```javascript
-// 1) Pruebas de calcularCuota (puras, no requieren DB)
-test('calcularCuota — libre 3M/12m da 292.461', () => {
-  assert.strictEqual(calcularCuota(3_000_000, 12, 0.025), 292_461);
-});
-test('calcularCuota — vehículo 5M/24m da 261.370', ...);
-test('calcularCuota — hipoteca 10M/48m da 294.157', ...);
-
-// 2) Validaciones (invocar solicitar con payloads mal formados y verificar
-//    el mensaje de error) — requiere un stub mínimo de pg o mockear
-//    enTransaccion.
-
-// 3) Invariante del esquema (requiere DB real):
-//    - INSERT con saldo_pendiente < 0 → debe fallar.
-//    - UPDATE que deje estado='pagado' con saldo > 0 → debe fallar.
-```
+Lo que **sigue requiriendo PostgreSQL** y queda como integración futura:
+- Invariante del esquema (`INSERT` con `saldo_pendiente < 0` debe fallar).
+- Carrera real de dos `pagar-total` concurrentes (uno 200, otro 409).
 
 ### 9.2 Documento de evidencia del despliegue (prioridad: baja)
 Un apéndice del plan con capturas o salida HTTP cronometrada mostrando:

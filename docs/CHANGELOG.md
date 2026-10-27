@@ -4,6 +4,28 @@ Versionado inspirado en [SemVer](https://semver.org/lang/es/).
 
 ---
 
+## v1.1.1 — 27 de octubre de 2026 — Pruebas automatizadas de créditos
+
+### Añadido
+- **`api/test/creditos.test.js`** — 31 pruebas que cubren `calcularCuota`,
+  `validarSolicitud` y `planearPago`. Suma total ahora: 82/82 en `npm test`
+  (51 originales + 31 nuevos).
+- **CP-49, CP-50, CP-51, CP-52** propuestos en `docs/REVISION_CALIDAD.md`
+  quedan implementados (la parte determinista de CP-52; la carrera real
+  requiere PostgreSQL).
+
+### Cambiado
+- `api/src/services/creditos.js` refactorizado: `planearPago(credito, modo)`
+  extraída como función pura (fuente única de verdad para la aritmética de
+  pagos). Las constantes `MONTO_MIN`, `MONTO_MAX`, `PLAZOS_OK` y la
+  validación `validarSolicitud` ahora se exportan.
+- `docs/MODULO_CREDITO.md` — tabla de cuotas corregida: hipoteca 10M a 48m
+  da **$293.750** (no $294.157), total **$14.100.000**.
+- `docs/REVISION_CALIDAD.md` — hallazgo H-01 (brecha de pruebas) marcado
+  como cerrado; recomendación §9.1 marcada como implementada.
+
+---
+
 ## v1.1.0 — 27 de octubre de 2026 — Módulo de créditos
 
 Añadido el módulo de créditos de principio a fin: simulador público,
