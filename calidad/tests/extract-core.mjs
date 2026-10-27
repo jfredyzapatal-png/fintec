@@ -23,6 +23,8 @@ const EXPORTADOS = [
   'guardarTopes', 'enviadoEn', 'cupoDiario', 'cupoMensual',
   'TOPE_DIARIO_DEF', 'TOPE_MENSUAL_DEF',
   'devolver', 'cancelar', 'buscar', 'alternarBloqueo',
+  'verUsuario', 'cerrarDetalle', 'pintarAdminMovimientos',
+  'filtrarMovimientos', 'limpiarFiltroMovimientos',
   'exportarCSV', 'aplicarRangoContable', 'resetRangoContable',
   'go', 'ping', 'simular'
 ];

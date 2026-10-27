@@ -10,7 +10,7 @@ exports.ATRIBUTOS = [
   ['Portabilidad','Medio','Diseño responsivo desde 1280×720 y compatible con las dos últimas versiones estables de Chrome, Firefox y Edge (RNF-03, RNF-04).',
     '0 errores visuales o funcionales reportados sobre 15 pantallas verificadas en los 3 navegadores.'],
   ['Mantenibilidad','Bajo','Lógica de negocio separable y testeable, con cobertura por pruebas unitarias de caja blanca.',
-    'Cobertura de ramas ≥ 80 % sobre la lógica de dominio extraída de Fintec.html. Medido: 84,09 % de ramas, 87,04 % de sentencias y 82,53 % de funciones (Vitest 3.2.4 + v8).']
+    'Cobertura de ramas ≥ 80 % sobre la lógica de dominio extraída de Fintec.html. Medido: 82,19 % de ramas, 89,41 % de sentencias y 84,21 % de funciones (Vitest 3.2.4 + v8).']
 ];
 
 exports.SQA = [
@@ -116,7 +116,15 @@ exports.CASOS = [
   ['CP-43','RF-04 (topes)','Inválido (tope incoherente)','María autenticada','Tope diario $900.000, tope mensual $500.000','En Notificaciones: guardar topes',
     'Mensaje "el tope diario no puede superar al mensual"; el tope diario conserva el valor por defecto.','RF-04 (topes)','Aceptado'],
   ['CP-44','RF-04 (topes) / Datos iniciales','Válido (datos semilla)','Aplicación recién cargada, sin sesión','—','1. Cargar la aplicación. 2. Listar los clientes y sumar disponible + bolsillos',
-    'El sistema arranca con 6 clientes y $18.000.000 en total.','RF-04 (topes)','Aceptado']
+    'El sistema arranca con 6 clientes y $18.000.000 en total.','RF-04 (topes)','Aceptado'],
+  ['CP-45','RF-05','Válido','Sesión de administrador','—','Abrir el panel de administrador',
+    'El resumen muestra 6 cuentas activas y $18.000.000 en custodia.','Esc.4','Aceptado'],
+  ['CP-46','RF-05','Válido','Sesión de administrador','Documento 1023456789','Pulsar Ver en la fila del cliente',
+    'El detalle muestra disponible, bolsillos, correo, topes y sus últimos movimientos; Cerrar lo oculta.','Esc.4','Aceptado'],
+  ['CP-47','RF-05','Válido','Sesión de administrador','—','Abrir Historial global',
+    'Se listan todas las operaciones del sistema, de todas las cuentas.','Esc.4','Aceptado'],
+  ['CP-48','RF-05','Válido (filtros)','Sesión de administrador','Estado=Rechazada; luego cuenta 000-000-000','Filtrar, limpiar y volver a filtrar',
+    'Solo aparecen las rechazadas; al limpiar vuelven todas; una cuenta inexistente muestra el aviso de que nada coincide.','Esc.4','Aceptado'],
 ];
 
 exports.DEFECTOS = [
@@ -165,15 +173,17 @@ exports.TRAZABILIDAD = [
 ];
 
 /* Resultados de la ejecucion real de la bateria (evidencia en /evidencia) */
+exports.TRAZABILIDAD.push(['RF-05 (panel admin)','CP-45, CP-46, CP-47, CP-48','—','Resumen de operación, detalle de cuenta e historial global filtrable','4/4 OK (CP-45 a CP-48)']);
+
 exports.EJECUCION = {
-  fecha: '20/10/2026 19:56',
+  fecha: '27/10/2026 13:55',
   entorno: 'Windows 11 · Node v24.11.0 · Vitest 3.2.4 · jsdom 26.1.0 · entorno de pruebas del equipo',
   comando: 'npm test  /  npm run cobertura',
-  disenados: 44,
-  ejecutados: 47,
-  aprobados: 47,
+  disenados: 48,
+  ejecutados: 51,
+  aprobados: 51,
   fallidos: 0,
-  cobertura: { sentencias: '87,04 %', ramas: '84,09 %', funciones: '82,53 %' },
+  cobertura: { sentencias: '89,41 %', ramas: '82,19 %', funciones: '84,21 %' },
   nota: 'Los 44 casos disenados se ejecutaron como 47 pruebas automatizadas: CP-23, CP-35 y CP-36 se '
       + 'desdoblaron en dos pruebas cada uno (CP-23b busqueda por correo, CP-35b filtro de rango y '
       + 'CP-36b acceso del rol contable) para aislar la condicion verificada.'

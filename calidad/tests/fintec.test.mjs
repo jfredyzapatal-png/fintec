@@ -433,6 +433,61 @@ describe('RF-05 Gestion administrativa (Escenario 4)', () => {
   });
 });
 
+/* ========== RF-05 — resumen, detalle e historial del administrador ========== */
+describe('RF-05 Panel del administrador: ver', () => {
+
+  it('CP-45 el resumen muestra cuentas activas y el dinero en custodia', async () => {
+    const app = await conSesion('admin', 'admin123');
+    const tarjetas = [...document.querySelectorAll('#b-admin .grid .card .d')].map(x => x.textContent);
+
+    expect(tarjetas[0]).toBe('6');                 // 6 clientes activos
+    expect(tarjetas[1]).toBe(app.fmt(18000000));   // dinero en custodia
+  });
+
+  it('CP-46 el detalle de una cuenta muestra saldos, topes y sus movimientos', async () => {
+    const app = await conSesion('admin', 'admin123');
+    app.verUsuario(MARIA);
+    const t = app.el('ad-detalle').textContent;
+
+    expect(t).toContain('María Gómez');
+    expect(t).toContain(app.fmt(2450000));      // disponible
+    expect(t).toContain(app.fmt(1150000));      // en bolsillos
+    expect(t).toContain('maria.gomez@correo.com');
+    expect(t).toContain(app.fmt(app.TOPE_DIARIO_DEF));
+    expect(t).toContain('TX-');                 // al menos un movimiento
+
+    app.cerrarDetalle();
+    expect(app.el('ad-detalle').innerHTML).toBe('');
+  });
+
+  it('CP-47 el historial global lista las operaciones de todas las cuentas', async () => {
+    const app = await conSesion('admin', 'admin123');
+    app.go('a-movimientos');
+    const filas = () => [...document.querySelectorAll('#b-amovimientos tbody tr')];
+
+    expect(filas().length).toBe(app.BANCO.movimientos.length);
+  });
+
+  it('CP-48 el historial se filtra por estado y por cuenta', async () => {
+    const app = await conSesion('admin', 'admin123');
+    app.go('a-movimientos');
+
+    app.el('am-estado').value = 'Rechazada';
+    app.filtrarMovimientos();
+    const rechazadas = [...document.querySelectorAll('#b-amovimientos tbody tr')];
+    expect(rechazadas.length).toBe(app.BANCO.movimientos.filter(m => m.estado === 'Rechazada').length);
+    expect(rechazadas.every(t => t.textContent.includes('Rechazada'))).toBe(true);
+
+    app.limpiarFiltroMovimientos();
+    expect([...document.querySelectorAll('#b-amovimientos tbody tr')].length)
+      .toBe(app.BANCO.movimientos.length);
+
+    app.el('am-cuenta').value = '000-000-000';
+    app.filtrarMovimientos();
+    expect(app.el('b-amovimientos').textContent).toMatch(/Ningún movimiento coincide/i);
+  });
+});
+
 /* ===================== RF-03 / RN-02 Bolsillos ===================== */
 describe('RF-03 y RN-02 Saldos y bolsillos', () => {
 
