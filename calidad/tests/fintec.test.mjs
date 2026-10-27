@@ -16,6 +16,14 @@ function llenarTransferencia(app, cuenta, monto, nota) {
   app.el('tr-nota').value = nota || '';
 }
 
+/* La transferencia es en dos pasos: transferir() valida y pide confirmar el
+   destinatario, confirmarTransferencia() mueve el dinero. */
+function enviar(app, cuenta, monto, nota) {
+  llenarTransferencia(app, cuenta, monto, nota);
+  app.transferir();
+  app.confirmarTransferencia();
+}
+
 afterEach(() => { vi.useRealTimers(); });
 
 /* ===================== RF-04 / RN-01 — Escenario 1 ===================== */
@@ -23,8 +31,7 @@ describe('RF-04 Transferencias (Escenario 1)', () => {
 
   it('CP-01 transferencia valida descuenta, acredita y notifica a ambos', async () => {
     const app = await conSesion(MARIA, 'maria123');
-    llenarTransferencia(app, CTA_LAURA, 100000, 'Prueba');
-    app.transferir();
+    enviar(app, CTA_LAURA, 100000, 'Prueba');
 
     expect(app.BANCO.usuarios[MARIA].disponible).toBe(2350000);
     expect(app.BANCO.usuarios[LAURA].disponible).toBe(3900000);
@@ -37,8 +44,7 @@ describe('RF-04 Transferencias (Escenario 1)', () => {
 
   it('CP-02 monto igual al disponible deja el saldo en cero', async () => {
     const app = await conSesion(MARIA, 'maria123');
-    llenarTransferencia(app, CTA_LAURA, 2450000);
-    app.transferir();
+    enviar(app, CTA_LAURA, 2450000);
 
     expect(app.BANCO.usuarios[MARIA].disponible).toBe(0);
     expect(app.BANCO.movimientos[0].estado).toBe('Completada');
@@ -105,6 +111,99 @@ describe('RF-04 Transferencias (Escenario 1)', () => {
 
     expect(app.__getSesion()).toBeNull();
     expect(pantalla()).toBe('login');
+  });
+});
+
+/* ===== RF-04 — confirmacion de destinatario y topes configurables ===== */
+describe('RF-04 Confirmacion de destinatario y topes', () => {
+
+  it('CP-38 antes de mover dinero se muestra el nombre del titular', async () => {
+    const app = await conSesion(MARIA, 'maria123');
+    llenarTransferencia(app, CTA_LAURA, 100000);
+    app.transferir();
+
+    const panel = app.el('tr-confirma').textContent;
+    expect(panel).toContain('Laura Díaz');
+    expect(panel).toContain(app.fmt(100000));
+    // todavia no se movio nada
+    expect(app.BANCO.usuarios[MARIA].disponible).toBe(2450000);
+    expect(app.BANCO.usuarios[LAURA].disponible).toBe(3800000);
+  });
+
+  it('CP-39 cancelar en la confirmacion no mueve dinero', async () => {
+    const app = await conSesion(MARIA, 'maria123');
+    const antes = app.BANCO.movimientos.length;
+    llenarTransferencia(app, CTA_LAURA, 100000);
+    app.transferir();
+    app.cancelarTransferencia();
+
+    expect(app.el('tr-confirma').innerHTML).toBe('');
+    expect(app.BANCO.usuarios[MARIA].disponible).toBe(2450000);
+    expect(app.BANCO.movimientos.length).toBe(antes);
+  });
+
+  it('CP-40 no se puede transferir a la propia cuenta', async () => {
+    const app = await conSesion(MARIA, 'maria123');
+    const antes = app.BANCO.movimientos.length;
+    llenarTransferencia(app, '001-234-567', 50000);
+    app.transferir();
+
+    expect(errorDe(app, 'tr-error')).toMatch(/propia cuenta/i);
+    expect(app.BANCO.movimientos.length).toBe(antes);
+  });
+
+  it('CP-41 un monto por encima del tope diario se rechaza y queda registrado', async () => {
+    const app = await conSesion(MARIA, 'maria123');
+    app.go('u-notificaciones');
+    app.el('tp-diario').value = '50000';
+    app.el('tp-mensual').value = '1000000';
+    app.guardarTopes();
+    expect(app.BANCO.usuarios[MARIA].topeDiario).toBe(50000);
+
+    llenarTransferencia(app, CTA_LAURA, 60000);
+    app.transferir();
+
+    expect(errorDe(app, 'tr-error')).toMatch(/tope diario/i);
+    expect(app.BANCO.movimientos[0].estado).toBe('Rechazada');
+    expect(app.BANCO.movimientos[0].nota).toMatch(/tope diario/i);
+    expect(app.BANCO.usuarios[MARIA].disponible).toBe(2450000);
+  });
+
+  it('CP-42 el cupo diario se consume con cada envio', async () => {
+    const app = await conSesion(MARIA, 'maria123');
+    app.go('u-notificaciones');
+    app.el('tp-diario').value = '150000';
+    app.el('tp-mensual').value = '1000000';
+    app.guardarTopes();
+
+    expect(app.cupoDiario(app.__getSesion())).toBe(150000);
+    enviar(app, CTA_LAURA, 100000);
+    expect(app.cupoDiario(app.__getSesion())).toBe(50000);
+
+    // el siguiente envio ya no cabe en el cupo
+    llenarTransferencia(app, CTA_LAURA, 60000);
+    app.transferir();
+    expect(errorDe(app, 'tr-error')).toMatch(/tope diario/i);
+  });
+
+  it('CP-43 el tope diario no puede superar al mensual', async () => {
+    const app = await conSesion(MARIA, 'maria123');
+    app.go('u-notificaciones');
+    app.el('tp-diario').value = '900000';
+    app.el('tp-mensual').value = '500000';
+    app.guardarTopes();
+
+    expect(errorDe(app, 'tp-error')).toMatch(/no puede superar/i);
+    expect(app.BANCO.usuarios[MARIA].topeDiario).toBe(app.TOPE_DIARIO_DEF);
+  });
+
+  it('CP-44 el sistema arranca con 6 clientes y $18.000.000', async () => {
+    const app = await cargarApp();
+    const cs = app.clientes();
+    const total = cs.reduce((s, u) => s + u.disponible + app.totalBolsillos(u), 0);
+
+    expect(cs).toHaveLength(6);
+    expect(total).toBe(18000000);
   });
 });
 
@@ -263,8 +362,7 @@ describe('RF-05 Gestion administrativa (Escenario 4)', () => {
 
   async function adminConTransferencia() {
     const app = await conSesion(MARIA, 'maria123');
-    llenarTransferencia(app, CTA_LAURA, 100000, 'Para devolver');
-    app.transferir();
+    enviar(app, CTA_LAURA, 100000, 'Para devolver');
     const tx = app.BANCO.movimientos.find(m => m.tipo === 'Transferencia' && m.estado === 'Completada' && !m.revertida);
     app.salir();
     app.rellenar('admin', 'admin123');

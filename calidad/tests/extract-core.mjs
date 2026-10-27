@@ -18,7 +18,10 @@ const EXPORTADOS = [
   'BANCO', 'CONVENIOS', 'MAX_INTENTOS', 'BLOQUEO_MIN', 'INACTIVIDAD_MS', 'ROL_PANTALLA',
   'fmt', 'el', 'val', 'iso', 'porCuenta', 'clientes', 'totalBolsillos', 'mios',
   'entrar', 'salir', 'rellenar', 'registrar', 'cambiarPassword',
-  'transferir', 'pagar', 'aportar', 'retirar', 'crearBolsillo',
+  'transferir', 'confirmarTransferencia', 'cancelarTransferencia', 'pagar',
+  'aportar', 'retirar', 'crearBolsillo',
+  'guardarTopes', 'enviadoEn', 'cupoDiario', 'cupoMensual',
+  'TOPE_DIARIO_DEF', 'TOPE_MENSUAL_DEF',
   'devolver', 'cancelar', 'buscar', 'alternarBloqueo',
   'exportarCSV', 'aplicarRangoContable', 'resetRangoContable',
   'go', 'ping', 'simular'

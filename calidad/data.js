@@ -102,7 +102,21 @@ exports.CASOS = [
   ['CP-36','Seguridad / Rol','Inválido (bypass)','María autenticada','Ejecutar go("a-panel") en consola','Intentar acceder al panel admin siendo usuario',
     'Redirige a u-inicio y muestra toast "No tienes acceso a esa sección".','RF-02/RN-06','Ajustado — añadido mapa ROL_PANTALLA'],
   ['CP-37','RNF-01','Borde (inactividad)','Usuario autenticado','10 min sin interacción','Dejar sesión inactiva 10 min',
-    'Toast "Sesión cerrada por inactividad" y vuelta al login.','RNF-01','Aceptado']
+    'Toast "Sesión cerrada por inactividad" y vuelta al login.','RNF-01','Aceptado'],
+  ['CP-38','RF-04 (topes) / Esc.1','Válido (confirmación)','María autenticada con disponible $2.450.000','Cuenta destino 009-441-220 escrita a mano, monto $100.000','1. Login María. 2. Ir a Transferir. 3. Escribir la cuenta destino y el monto. 4. Transferir',
+    'El panel de confirmación muestra el nombre del titular "Laura Díaz" y el monto $100.000; aún no se mueve dinero (disponible María = $2.450.000, Laura = $3.800.000).','RF-04 (topes)','Aceptado'],
+  ['CP-39','RF-04 (topes)','Válido (cancelación)','Confirmación de destinatario en pantalla','Cuenta 009-441-220, monto $100.000','1. Transferir para abrir la confirmación. 2. Cancelar la confirmación',
+    'El panel de confirmación queda vacío; disponible de María sin cambio y ningún movimiento registrado.','RF-04 (topes)','Aceptado'],
+  ['CP-40','RF-04 (topes)','Inválido (cuenta propia)','María autenticada','Cuenta destino 001-234-567 (la suya), monto $50.000','1. Escribir su propia cuenta como destino. 2. Transferir',
+    'Mensaje de error sobre la "propia cuenta"; sin movimiento registrado.','RF-04 (topes)','Aceptado'],
+  ['CP-41','RF-04 (topes) / RN-01','Inválido (tope diario)','María con tope diario $50.000 y mensual $1.000.000 guardados','Cuenta 009-441-220, monto $60.000','1. Ir a Notificaciones. 2. Guardar topes 50.000 / 1.000.000. 3. Transferir $60.000',
+    'Mensaje "tope diario"; movimiento registrado con estado Rechazada y motivo de tope diario; disponible María = $2.450.000.','RF-04 (topes)','Aceptado'],
+  ['CP-42','RF-04 (topes)','Válido (consumo de cupo)','María con tope diario $150.000 y mensual $1.000.000','Envío de $100.000 y luego intento de $60.000','1. Guardar topes 150.000 / 1.000.000. 2. Enviar $100.000. 3. Intentar enviar $60.000',
+    'Cupo diario inicial $150.000; tras el envío queda $50.000; el segundo envío se rechaza con mensaje "tope diario".','RF-04 (topes)','Aceptado'],
+  ['CP-43','RF-04 (topes)','Inválido (tope incoherente)','María autenticada','Tope diario $900.000, tope mensual $500.000','En Notificaciones: guardar topes',
+    'Mensaje "el tope diario no puede superar al mensual"; el tope diario conserva el valor por defecto.','RF-04 (topes)','Aceptado'],
+  ['CP-44','RF-04 (topes) / Datos iniciales','Válido (datos semilla)','Aplicación recién cargada, sin sesión','—','1. Cargar la aplicación. 2. Listar los clientes y sumar disponible + bolsillos',
+    'El sistema arranca con 6 clientes y $18.000.000 en total.','RF-04 (topes)','Aceptado']
 ];
 
 exports.DEFECTOS = [
@@ -127,7 +141,11 @@ exports.DEFECTOS = [
   ['D-10','CP-26','No existía el estado "Cancelada" ni la acción Cancelar del admin (RF-04 CA-04.1).',
     'Buscar en el panel admin la opción Cancelar. Esperado: existe. Obtenido: solo Devolver.','Media','Corregido (función cancelar + estado Cancelada en filaMov)'],
   ['D-11','CP-06','Pagos y bolsillos no verificaban si la cuenta está bloqueada (RN-07).',
-    'Bloquear cuenta y tratar de pagar un convenio. Esperado: rechazo. Obtenido: pago procesado.','Media','Corregido (guard en pagar, aportar, retirar, crearBolsillo)']
+    'Bloquear cuenta y tratar de pagar un convenio. Esperado: rechazo. Obtenido: pago procesado.','Media','Corregido (guard en pagar, aportar, retirar, crearBolsillo)'],
+  ['D-12','CP-38 / CP-39','El selector de cuenta destino listaba a todos los clientes del sistema con su nombre y número de cuenta, exponiendo datos personales de terceros a cualquier usuario autenticado.',
+    '1. Login María. 2. Abrir Transferir y desplegar el selector de destino. Esperado: solo la cuenta que el usuario escriba. Obtenido: la lista completa de clientes con nombre y número de cuenta.','Media','Corregido (campo de texto + confirmación del titular antes de enviar)'],
+  ['D-13','CP-41 / CP-42 / CP-43','RF-04 se titula "Gestión de transacciones y límites" pero no existía ningún tope de transferencia implementado.',
+    'Enviar transferencias sucesivas hasta agotar el disponible. Esperado: rechazo al superar un tope. Obtenido: no hay tope alguno, todas se procesan.','Media','Corregido (topes diario y mensual configurables por usuario, con rechazo registrado)']
 ];
 
 exports.TRAZABILIDAD = [
@@ -142,7 +160,8 @@ exports.TRAZABILIDAD = [
   ['RNF-01','CP-37','D-05','Autologout 10 min','1/1 OK (CP-37)'],
   ['RNF-02','CP-14','D-01','Bloqueo 15 min por cuenta','1/1 OK (CP-14)'],
   ['RN-07','CP-06, CP-08, CP-15','D-06, D-11','Cuenta bloqueada no transacciona','3/3 OK (CP-06, CP-08, CP-15)'],
-  ['Rol / seguridad','CP-36, CP-36b','D-03','Validación de rol en navegación','2/2 OK (CP-36, CP-36b)']
+  ['Rol / seguridad','CP-36, CP-36b','D-03','Validación de rol en navegación','2/2 OK (CP-36, CP-36b)'],
+  ['RF-04 (topes)','CP-38, CP-39, CP-40, CP-41, CP-42, CP-43, CP-44','D-12, D-13','Confirmación del titular destino antes de enviar y topes diario/mensual configurables con rechazo registrado','7/7 OK (CP-38 a CP-44)']
 ];
 
 /* Resultados de la ejecucion real de la bateria (evidencia en /evidencia) */
@@ -150,12 +169,12 @@ exports.EJECUCION = {
   fecha: '20/10/2026 19:56',
   entorno: 'Windows 11 · Node v24.11.0 · Vitest 3.2.4 · jsdom 26.1.0 · entorno de pruebas del equipo',
   comando: 'npm test  /  npm run cobertura',
-  disenados: 37,
-  ejecutados: 40,
-  aprobados: 40,
+  disenados: 44,
+  ejecutados: 47,
+  aprobados: 47,
   fallidos: 0,
   cobertura: { sentencias: '87,04 %', ramas: '84,09 %', funciones: '82,53 %' },
-  nota: 'Los 37 casos disenados se ejecutaron como 40 pruebas automatizadas: CP-23, CP-35 y CP-36 se '
+  nota: 'Los 44 casos disenados se ejecutaron como 47 pruebas automatizadas: CP-23, CP-35 y CP-36 se '
       + 'desdoblaron en dos pruebas cada uno (CP-23b busqueda por correo, CP-35b filtro de rango y '
       + 'CP-36b acceso del rol contable) para aislar la condicion verificada.'
 };

@@ -267,8 +267,13 @@ table{width:100%;border-collapse:collapse;font-size:14px} th,td{padding:10px 6px
 <section class="screen" id="u-reportes"><header class="app"></header><div class="wrap" style="max-width:520px" id="b-reportes"></div></section>
 
 <section class="screen" id="a-panel">
-  <header class="app"><div class="d">FINTEC · Admin</div><nav><button class="on">Operación</button><button onclick="salir()">Salir</button></nav></header>
+  <header class="app"><div class="d">FINTEC · Admin</div><nav><button class="on">Cuentas</button><button onclick="go('a-movimientos')">Historial</button><button onclick="salir()">Salir</button></nav></header>
   <div class="wrap" id="b-admin"></div>
+</section>
+
+<section class="screen" id="a-movimientos">
+  <header class="app"><div class="d">FINTEC · Admin</div><nav><button onclick="go('a-panel')">Cuentas</button><button class="on">Historial</button><button onclick="salir()">Salir</button></nav></header>
+  <div class="wrap" id="b-amovimientos"></div>
 </section>
 
 <section class="screen" id="c-panel">
@@ -292,17 +297,25 @@ table{width:100%;border-collapse:collapse;font-size:14px} th,td{padding:10px 6px
 const BANCO = { usuarios: {}, movimientos: [], seq: 8840 };
 let sesion = null;
 
+/* Topes por defecto de una cuenta nueva. Cada usuario puede ajustarlos
+   desde su propia pantalla (RF-04: gestion de transacciones y limites). */
+const TOPE_DIARIO_DEF = 5000000, TOPE_MENSUAL_DEF = 20000000;
+
 function usuario(doc, clave, nombre, cuenta, rol, disponible, bolsillos, extras){
   BANCO.usuarios[doc] = {doc, clave, nombre, cuenta, rol, disponible,
     bolsillos: bolsillos || [], estado: 'activa', alertas: [],
     tipo: (extras && extras.tipo) || 'CC',
     correo: (extras && extras.correo) || '',
-    nacimiento: (extras && extras.nacimiento) || ''};
+    nacimiento: (extras && extras.nacimiento) || '',
+    topeDiario: (extras && extras.topeDiario) || TOPE_DIARIO_DEF,
+    topeMensual: (extras && extras.topeMensual) || TOPE_MENSUAL_DEF};
 }
 usuario('1023456789','maria123','María Gómez','001-234-567','usuario',2450000,[{nombre:'Vacaciones',saldo:800000},{nombre:'Emergencias',saldo:350000}],{tipo:'CC',correo:'maria.gomez@correo.com',nacimiento:'1996-04-12'});
 usuario('1098765432','carlos123','Carlos Ruiz','001-880-112','usuario',1200000,[{nombre:'Estudio',saldo:400000}],{tipo:'CC',correo:'carlos.ruiz@correo.com',nacimiento:'1990-11-02'});
 usuario('1076543210','laura123','Laura Díaz','009-441-220','usuario',3800000,[{nombre:'Viaje',saldo:1000000}],{tipo:'CE',correo:'laura.diaz@correo.com',nacimiento:'1988-07-19'});
 usuario('1045678901','andres123','Andrés Pérez','008-990-455','usuario',640000,[],{tipo:'CC',correo:'andres.perez@correo.com',nacimiento:'1999-02-28'});
+usuario('1012334455','valentina123','Valentina Soto','001-556-330','usuario',3200000,[{nombre:'Moto',saldo:700000}],{tipo:'CC',correo:'valentina.soto@correo.com',nacimiento:'1997-09-30'});
+usuario('1067889900','julian123','Julián Mesa','007-221-884','usuario',2960000,[{nombre:'Estudio',saldo:500000}],{tipo:'CE',correo:'julian.mesa@correo.com',nacimiento:'1993-03-14'});
 usuario('admin','admin123','Administrador','—','admin',0,[]);
 usuario('contable','conta123','Contable','—','contable',0,[]);
 
@@ -326,6 +339,20 @@ function nuevoId(){ return 'TX-' + (++BANCO.seq); }
 function porCuenta(c){ return Object.values(BANCO.usuarios).find(u => u.cuenta === c); }
 function clientes(){ return Object.values(BANCO.usuarios).filter(u => u.rol === 'usuario'); }
 function totalBolsillos(u){ return u.bolsillos.reduce((s,b) => s + b.saldo, 0); }
+
+/* Suma de transferencias completadas que han SALIDO de la cuenta en el dia
+   y en el mes en curso. Sirve para aplicar los topes de RF-04. */
+function enviadoEn(u, periodo){
+  const hoy = new Date();
+  return BANCO.movimientos
+    .filter(m => m.tipo === 'Transferencia' && m.estado === 'Completada' && m.origen === u.cuenta)
+    .filter(m => periodo === 'dia'
+      ? m.ts.toDateString() === hoy.toDateString()
+      : m.ts.getFullYear() === hoy.getFullYear() && m.ts.getMonth() === hoy.getMonth())
+    .reduce((s, m) => s + m.valor, 0);
+}
+function cupoDiario(u){ return Math.max(0, u.topeDiario - enviadoEn(u, 'dia')); }
+function cupoMensual(u){ return Math.max(0, u.topeMensual - enviadoEn(u, 'mes')); }
 
 function mover(tipo, origen, destino, valor, estado, nota){
   const m = {id: nuevoId(), ts: new Date(), tipo, origen, destino, valor, estado, nota: nota || '', revertida: false};
@@ -446,34 +473,92 @@ function pintarInicio(){
 
 function pintarTransferir(){
   const u = sesion;
-  const otros = clientes().filter(x => x.doc !== u.doc);
   el('b-transferir').innerHTML =
     '<h2 class="d">Enviar dinero</h2>' +
     '<div class="card">' +
-      '<div style="color:var(--dim);font-size:13px">Disponible: <strong>' + fmt(u.disponible) + '</strong></div>' +
+      '<div style="color:var(--dim);font-size:13px">Disponible: <strong>' + fmt(u.disponible) + '</strong>' +
+        ' · cupo de hoy: <strong>' + fmt(cupoDiario(u)) + '</strong>' +
+        ' · del mes: <strong>' + fmt(cupoMensual(u)) + '</strong></div>' +
       '<label for="tr-cuenta">Cuenta destino</label>' +
-      '<select id="tr-cuenta" name="cuenta">' + otros.map(o => '<option value="' + o.cuenta + '">' + esc(o.cuenta + ' · ' + o.nombre) + '</option>').join('') + '</select>' +
+      '<input id="tr-cuenta" name="cuenta" placeholder="001-880-112" autocomplete="off" />' +
       '<label for="tr-monto">Monto</label><input id="tr-monto" name="monto" inputmode="numeric" placeholder="180000" />' +
       '<label for="tr-nota">Nota</label><textarea id="tr-nota" name="nota" rows="2" placeholder="Arriendo"></textarea>' +
       '<p id="tr-error" class="err" role="alert" aria-live="polite"></p>' +
       '<div class="row"><button class="btn mint" onclick="transferir()">Transferir</button></div>' +
-      '<p style="color:var(--dim);font-size:13px">Si el monto supera tu disponible, el movimiento queda Rechazado y ningún saldo se mueve.</p>' +
-    '</div>';
+      '<p style="color:var(--dim);font-size:13px">Si el monto supera tu disponible o tus topes, el movimiento queda Rechazado y ningún saldo se mueve.</p>' +
+    '</div>' +
+    '<div id="tr-confirma"></div>';
 }
+
+/* Transferencia en dos pasos: primero se valida y se muestra a quien pertenece
+   la cuenta destino; el dinero solo se mueve cuando el usuario confirma. */
+let pendiente = null;
 
 function transferir(){
   const u = sesion;
   if (u.estado === 'bloqueada'){ ping('Tu cuenta está bloqueada'); salir(); return; }
-  const destino = porCuenta(val('tr-cuenta'));
+  const cuenta = val('tr-cuenta');
+  const destino = porCuenta(cuenta);
   const monto = Math.round(Number(val('tr-monto')));
   const nota = val('tr-nota');
+
+  if (!cuenta){ err('tr-error', 'Escribe la cuenta destino.'); return; }
   if (!destino){ err('tr-error', 'Esa cuenta no existe.'); return; }
+  if (destino.doc === u.doc){ err('tr-error', 'No puedes transferirte a tu propia cuenta.'); return; }
   if (!monto || monto <= 0){ err('tr-error', 'Escribe un monto mayor que cero.'); return; }
   if (destino.estado === 'bloqueada'){ err('tr-error', 'La cuenta destino está bloqueada y no puede recibir dinero.'); return; }
+
   if (monto > u.disponible){
     mover('Transferencia', u.cuenta, destino.cuenta, monto, 'Rechazada', 'Saldo insuficiente');
     alerta(u, 'Transferencia de ' + fmt(monto) + ' rechazada por saldo insuficiente');
     err('tr-error', 'Saldo insuficiente. El movimiento quedó registrado como Rechazado.');
+    return;
+  }
+  /* RF-04 — topes que el propio usuario configura */
+  if (monto > cupoDiario(u)){
+    mover('Transferencia', u.cuenta, destino.cuenta, monto, 'Rechazada', 'Supera el tope diario');
+    alerta(u, 'Transferencia de ' + fmt(monto) + ' rechazada por superar el tope diario');
+    err('tr-error', 'Supera tu tope diario de ' + fmt(u.topeDiario) + '. Hoy te queda ' + fmt(cupoDiario(u)) + '.');
+    return;
+  }
+  if (monto > cupoMensual(u)){
+    mover('Transferencia', u.cuenta, destino.cuenta, monto, 'Rechazada', 'Supera el tope mensual');
+    alerta(u, 'Transferencia de ' + fmt(monto) + ' rechazada por superar el tope mensual');
+    err('tr-error', 'Supera tu tope mensual de ' + fmt(u.topeMensual) + '. Este mes te queda ' + fmt(cupoMensual(u)) + '.');
+    return;
+  }
+
+  err('tr-error', '');
+  pendiente = {destino: destino.cuenta, monto, nota};
+  el('tr-confirma').innerHTML =
+    '<div class="card" style="margin-top:12px;border-color:#1757D8">' +
+      '<h3>Confirma el destinatario</h3>' +
+      '<p style="margin:0 0 4px">Vas a enviar <strong>' + fmt(monto) + '</strong> a:</p>' +
+      '<p class="d" style="font-size:22px;margin:4px 0">' + esc(destino.nombre) + '</p>' +
+      '<p style="color:var(--dim);font-size:13px;margin:0">Cuenta ' + esc(destino.cuenta) + ' · ' + esc(destino.tipo) + ' ' + esc(destino.doc) + '</p>' +
+      '<div class="row">' +
+        '<button class="btn mint" onclick="confirmarTransferencia()">Sí, enviar</button>' +
+        '<button class="btn ghost" onclick="cancelarTransferencia()">Cancelar</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function cancelarTransferencia(){
+  pendiente = null;
+  if (el('tr-confirma')) el('tr-confirma').innerHTML = '';
+}
+
+function confirmarTransferencia(){
+  if (!pendiente){ return; }
+  const u = sesion;
+  const destino = porCuenta(pendiente.destino);
+  const monto = pendiente.monto, nota = pendiente.nota;
+  /* Se revalida al confirmar: entre la confirmacion y el envio pudo cambiar
+     el saldo, el cupo o el estado de la cuenta destino. */
+  if (!destino || destino.estado === 'bloqueada' || monto > u.disponible ||
+      monto > cupoDiario(u) || monto > cupoMensual(u)){
+    cancelarTransferencia();
+    err('tr-error', 'La operación ya no es válida. Vuelve a intentarlo.');
     return;
   }
   u.disponible -= monto;
@@ -481,7 +566,7 @@ function transferir(){
   const m = mover('Transferencia', u.cuenta, destino.cuenta, monto, 'Completada', nota);
   alerta(u, 'Enviada ' + fmt(monto) + ' a ' + destino.nombre);
   alerta(destino, 'Recibida ' + fmt(monto) + ' de ' + u.nombre);
-  err('tr-error', '');
+  pendiente = null;
   ping(m.id + ' completada · ' + fmt(monto) + ' a ' + destino.nombre);
   go('u-inicio');
 }
@@ -592,6 +677,18 @@ function pintarAlertas(){
     '<h2 class="d">Alertas</h2>' +
     (sesion.alertas.map(a => '<div class="card" style="margin-bottom:10px"><p>' + esc(a.texto) + ' · ' + fechaCorta(a.ts) + '</p></div>').join('') ||
      '<div class="card"><p>Sin alertas por ahora.</p></div>') +
+    /* RF-04 — cada usuario define sus propios topes de transferencia */
+    '<div class="card" style="margin-top:16px">' +
+      '<h3>Topes de transferencia</h3>' +
+      '<p style="color:var(--dim);font-size:13px;margin:0 0 6px">Define cuánto puedes enviar como máximo por día y por mes. ' +
+        'Hoy llevas ' + fmt(enviadoEn(sesion, 'dia')) + ' y este mes ' + fmt(enviadoEn(sesion, 'mes')) + '.</p>' +
+      '<label for="tp-diario">Tope diario</label>' +
+      '<input id="tp-diario" inputmode="numeric" value="' + sesion.topeDiario + '" />' +
+      '<label for="tp-mensual">Tope mensual</label>' +
+      '<input id="tp-mensual" inputmode="numeric" value="' + sesion.topeMensual + '" />' +
+      '<p id="tp-error" class="err" role="alert" aria-live="polite"></p>' +
+      '<div class="row"><button class="btn mint" onclick="guardarTopes()">Guardar topes</button></div>' +
+    '</div>' +
     /* RF-06 CA-06.2 — cambio de contraseña con notificación */
     '<div class="card" style="margin-top:16px">' +
       '<h3>Cambiar contraseña</h3>' +
@@ -605,6 +702,24 @@ function pintarAlertas(){
       '<p id="cp-error" class="err" role="alert" aria-live="polite"></p>' +
       '<div class="row"><button class="btn mint" onclick="cambiarPassword()">Guardar</button></div>' +
     '</div>';
+}
+
+function guardarTopes(){
+  const u = sesion;
+  const diario = Math.round(Number(val('tp-diario')));
+  const mensual = Math.round(Number(val('tp-mensual')));
+  if (!diario || diario <= 0 || !mensual || mensual <= 0){
+    err('tp-error', 'Los topes deben ser mayores que cero.'); return;
+  }
+  if (diario > mensual){
+    err('tp-error', 'El tope diario no puede superar al mensual.'); return;
+  }
+  u.topeDiario = diario;
+  u.topeMensual = mensual;
+  alerta(u, 'Topes actualizados: ' + fmt(diario) + ' diario y ' + fmt(mensual) + ' mensual · ' + fechaCorta(new Date()));
+  err('tp-error', '');
+  ping('Topes actualizados');
+  pintarAlertas();
 }
 
 function cambiarPassword(){
@@ -666,8 +781,25 @@ function pintarAdmin(){
     u.cuenta.toLowerCase().includes(q) ||
     (u.correo || '').toLowerCase().includes(q));
   const reversibles = BANCO.movimientos.filter(m => m.tipo === 'Transferencia' && m.estado === 'Completada');
+  /* Resumen de la operacion: lo que el administrador necesita ver de un vistazo */
+  const activas = clientes().filter(u => u.estado === 'activa').length;
+  const bloqueadas = clientes().length - activas;
+  const custodia = clientes().reduce((t, u) => t + u.disponible + totalBolsillos(u), 0);
+  const ahora = new Date();
+  const delDia = BANCO.movimientos.filter(m => m.ts.toDateString() === ahora.toDateString()).length;
+  const rechazos = BANCO.movimientos.filter(m => m.estado === 'Rechazada').length;
+
   el('b-admin').innerHTML =
     '<h2 class="d">Control de cuentas</h2>' +
+    '<div class="grid">' +
+      '<div class="card"><div style="color:var(--dim)">Cuentas activas</div><div class="d" style="font-size:30px">' + activas + '</div>' +
+        '<div style="color:var(--dim);font-size:13px">' + bloqueadas + ' bloqueada' + (bloqueadas === 1 ? '' : 's') + '</div></div>' +
+      '<div class="card"><div style="color:var(--dim)">Dinero en custodia</div><div class="d" style="font-size:30px">' + fmt(custodia) + '</div>' +
+        '<div style="color:var(--dim);font-size:13px">disponible + bolsillos</div></div>' +
+      '<div class="card"><div style="color:var(--dim)">Movimientos de hoy</div><div class="d" style="font-size:30px">' + delDia + '</div>' +
+        '<div style="color:var(--dim);font-size:13px">' + rechazos + ' rechazado' + (rechazos === 1 ? '' : 's') + ' en total</div></div>' +
+    '</div>' +
+    '<div class="row"><button class="btn ghost" onclick="irAHistorial()">Ver historial global</button></div>' +
     '<p style="color:var(--dim)">Buscar · bloquear · devolver o cancelar. El admin no altera saldos a mano.</p>' +
     '<p id="ad-error" class="err" role="alert" aria-live="polite"></p>' +
     '<div class="card">' +
@@ -678,9 +810,11 @@ function pintarAdmin(){
       (lista.map(u =>
         '<tr><td>' + esc(u.nombre) + '</td><td>' + esc(u.doc) + '</td><td>' + esc(u.cuenta) + '</td><td>' + fmt(u.disponible) + '</td>' +
         '<td><span class="st ' + (u.estado === 'activa' ? 'ok' : 'bad') + '">' + (u.estado === 'activa' ? 'Activa' : 'Bloqueada') + '</span></td>' +
-        '<td><button class="chip" data-doc="' + esc(u.doc) + '" onclick="alternarBloqueo(this.dataset.doc)">' + (u.estado === 'activa' ? 'Bloquear' : 'Desbloquear') + '</button></td></tr>').join('') ||
+        '<td><button class="chip" data-doc="' + esc(u.doc) + '" onclick="verUsuario(this.dataset.doc)">Ver</button> ' +
+        '<button class="chip" data-doc="' + esc(u.doc) + '" onclick="alternarBloqueo(this.dataset.doc)">' + (u.estado === 'activa' ? 'Bloquear' : 'Desbloquear') + '</button></td></tr>').join('') ||
        '<tr><td colspan="6">Ninguna cuenta coincide con la búsqueda.</td></tr>') +
       '</tbody></table></div>' +
+    '<div id="ad-detalle"></div>' +
     '<div class="card" style="margin-top:12px"><h3>Devoluciones y cancelaciones</h3>' +
       '<table><tbody>' +
       (reversibles.map(m =>
@@ -693,6 +827,90 @@ function pintarAdmin(){
        '<tr><td>No hay transferencias completadas para devolver.</td></tr>') +
       '</tbody></table></div>';
 }
+/* Detalle de una cuenta: datos, topes, bolsillos y sus ultimos movimientos.
+   El administrador consulta, no edita saldos (RN-04). */
+function verUsuario(doc){
+  const u = BANCO.usuarios[doc];
+  if (!u){ return; }
+  const suyos = BANCO.movimientos.filter(m => m.origen === u.cuenta || m.destino === u.cuenta);
+  el('ad-detalle').innerHTML =
+    '<div class="card" style="margin-top:12px;border-color:#1757D8">' +
+      '<h3>' + esc(u.nombre) + ' · ' + esc(u.cuenta) + '</h3>' +
+      '<div class="grid">' +
+        '<div class="card"><div style="color:var(--dim)">Disponible</div><div class="d" style="font-size:26px">' + fmt(u.disponible) + '</div></div>' +
+        '<div class="card"><div style="color:var(--dim)">En bolsillos</div><div class="d" style="font-size:26px">' + fmt(totalBolsillos(u)) + '</div></div>' +
+        '<div class="card"><div style="color:var(--dim)">Total</div><div class="d" style="font-size:26px">' + fmt(u.disponible + totalBolsillos(u)) + '</div></div>' +
+      '</div>' +
+      '<p style="color:var(--dim);font-size:13px;margin-top:12px">' +
+        esc(u.tipo) + ' ' + esc(u.doc) + (u.correo ? ' · ' + esc(u.correo) : '') +
+        ' · estado ' + esc(u.estado) +
+        ' · topes ' + fmt(u.topeDiario) + ' diario / ' + fmt(u.topeMensual) + ' mensual</p>' +
+      (u.bolsillos.length
+        ? '<p style="font-size:13px;margin:0 0 8px">Bolsillos: ' + u.bolsillos.map(b => esc(b.nombre) + ' ' + fmt(b.saldo)).join(' · ') + '</p>'
+        : '<p style="font-size:13px;margin:0 0 8px;color:var(--dim)">Sin bolsillos.</p>') +
+      '<h3 style="font-size:15px;margin:12px 0 4px">Últimos movimientos</h3>' +
+      '<table><thead><tr><th>ID</th><th>Fecha</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Valor</th><th>Estado</th></tr></thead><tbody>' +
+      (suyos.slice(0, 8).map(m => filaMov(m)).join('') || '<tr><td colspan="7">Sin movimientos.</td></tr>') +
+      '</tbody></table>' +
+      '<div class="row"><button class="btn ghost" onclick="cerrarDetalle()">Cerrar</button></div>' +
+    '</div>';
+}
+function cerrarDetalle(){ if (el('ad-detalle')) el('ad-detalle').innerHTML = ''; }
+
+/* RF-05 — historial global de operaciones, con filtros */
+function pintarAdminMovimientos(){
+  if (!window.adminFiltro) window.adminFiltro = {estado:'', tipo:'', cuenta:''};
+  const f = window.adminFiltro;
+  const lista = BANCO.movimientos.filter(m =>
+    (!f.estado || m.estado === f.estado) &&
+    (!f.tipo || m.tipo === f.tipo) &&
+    (!f.cuenta || m.origen.toLowerCase().includes(f.cuenta.toLowerCase()) || m.destino.toLowerCase().includes(f.cuenta.toLowerCase())));
+  const suma = lista.filter(m => m.estado === 'Completada').reduce((t, m) => t + m.valor, 0);
+  const d = new Date(), desde = new Date(d.getFullYear(), d.getMonth(), 1);
+
+  el('b-amovimientos').innerHTML =
+    '<h2 class="d">Historial global</h2>' +
+    '<p style="color:var(--dim)">Todas las operaciones del sistema, de todas las cuentas.</p>' +
+    '<div class="card">' +
+      '<label for="am-estado">Estado</label>' +
+      '<select id="am-estado">' + ['','Completada','Rechazada','Cancelada'].map(e =>
+        '<option value="' + e + '"' + (f.estado === e ? ' selected' : '') + '>' + (e || 'Todos') + '</option>').join('') + '</select>' +
+      '<label for="am-tipo">Tipo</label>' +
+      '<select id="am-tipo">' + ['','Transferencia','Pago','Bolsillo','Reversión','Cancelación'].map(t =>
+        '<option value="' + t + '"' + (f.tipo === t ? ' selected' : '') + '>' + (t || 'Todos') + '</option>').join('') + '</select>' +
+      '<label for="am-cuenta">Cuenta (origen o destino)</label>' +
+      '<input id="am-cuenta" value="' + esc(f.cuenta) + '" placeholder="001-234-567" />' +
+      '<div class="row">' +
+        '<button class="btn mint" onclick="filtrarMovimientos()">Filtrar</button>' +
+        '<button class="btn ghost" onclick="limpiarFiltroMovimientos()">Limpiar</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="grid">' +
+      '<div class="card"><div style="color:var(--dim)">Operaciones</div><div class="d" style="font-size:28px">' + lista.length + '</div></div>' +
+      '<div class="card"><div style="color:var(--dim)">Monto completado</div><div class="d" style="font-size:28px">' + fmt(suma) + '</div></div>' +
+      '<div class="card"><div style="color:var(--dim)">Exportar</div>' +
+        '<input id="am-desde" type="date" value="' + iso(desde) + '" />' +
+        '<input id="am-hasta" type="date" value="' + iso(d) + '" style="margin-top:8px" />' +
+        '<div class="row"><button class="btn ghost" onclick="exportarHistorial()">CSV global</button></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card" style="margin-top:12px">' +
+      '<table><thead><tr><th>ID</th><th>Fecha</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Valor</th><th>Estado</th></tr></thead><tbody>' +
+      (lista.map(m => filaMov(m)).join('') || '<tr><td colspan="7">Ningún movimiento coincide con el filtro.</td></tr>') +
+      '</tbody></table>' +
+    '</div>';
+}
+function irAHistorial(){ go('a-movimientos'); }
+function exportarHistorial(){ exportarCSV('am-desde', 'am-hasta', true); }
+function filtrarMovimientos(){
+  window.adminFiltro = {estado: val('am-estado'), tipo: val('am-tipo'), cuenta: val('am-cuenta')};
+  pintarAdminMovimientos();
+}
+function limpiarFiltroMovimientos(){
+  window.adminFiltro = {estado:'', tipo:'', cuenta:''};
+  pintarAdminMovimientos();
+}
+
 function buscar(){ window.adminQ = val('ad-busca'); pintarAdmin(); }
 
 function alternarBloqueo(doc){
@@ -841,7 +1059,8 @@ const H = '<div class="d">FINTEC</div>' +
 const PINTORES = {
   'u-inicio': pintarInicio, 'u-transferir': pintarTransferir, 'u-bolsillos': pintarBolsillos,
   'u-pagos': pintarPagos, 'u-movimientos': pintarMovimientos, 'u-notificaciones': pintarAlertas,
-  'u-reportes': pintarReportes, 'a-panel': pintarAdmin, 'c-panel': pintarContable, 'c-reportes': pintarCReportes
+  'u-reportes': pintarReportes, 'a-panel': pintarAdmin, 'a-movimientos': pintarAdminMovimientos,
+  'c-panel': pintarContable, 'c-reportes': pintarCReportes
 };
 const PRIVADAS = Object.keys(PINTORES);
 /* RF-02 / RN-06 / RN-07 — pantalla → rol requerido */
@@ -849,7 +1068,7 @@ const ROL_PANTALLA = {
   'u-inicio':'usuario','u-transferir':'usuario','u-bolsillos':'usuario',
   'u-pagos':'usuario','u-movimientos':'usuario','u-notificaciones':'usuario',
   'u-reportes':'usuario',
-  'a-panel':'admin',
+  'a-panel':'admin','a-movimientos':'admin',
   'c-panel':'contable','c-reportes':'contable'
 };
 
