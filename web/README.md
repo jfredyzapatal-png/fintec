@@ -7,6 +7,11 @@ objeto `BANCO` en memoria.
 El archivo original **no se tocó** y sigue funcionando solo, sin servidor. Esta
 carpeta es independiente.
 
+**Versión actual:** v1.1.0 — añade el **simulador público con 3 tipos** y la
+pantalla **Crédito** para el usuario autenticado. Ver
+[`../docs/MODULO_CREDITO.md`](../docs/MODULO_CREDITO.md) y
+[`../docs/MANUAL_USUARIO.md`](../docs/MANUAL_USUARIO.md).
+
 ## Archivos
 
 | Archivo | Qué hace |

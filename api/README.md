@@ -5,8 +5,17 @@ lógica que el prototipo `producto/Fintec.html` tenía en memoria
 (objeto `BANCO`), para que las reglas de negocio las valide el
 servidor y no el navegador.
 
+**Versión actual:** v1.1.0 (módulo de créditos incluido).
+
 **Pila:** Node 24 · Express 5 · PostgreSQL (`pg`, SQL directo sin ORM) ·
-bcrypt · jsonwebtoken. Módulos ESM.
+bcryptjs · jsonwebtoken. Módulos ESM.
+
+> Documentación complementaria en [`../docs/`](../docs/):
+> [API Reference](../docs/API_REFERENCE.md),
+> [Modelo de datos](../docs/MODELO_DATOS.md),
+> [Arquitectura](../docs/ARQUITECTURA.md),
+> [Módulo de créditos](../docs/MODULO_CREDITO.md),
+> [Changelog](../docs/CHANGELOG.md).
 
 ---
 
@@ -15,9 +24,11 @@ bcrypt · jsonwebtoken. Módulos ESM.
 ```
 api/
 ├── db/
-│   ├── schema.sql      DDL: usuarios, bolsillos, movimientos, alertas
-│   ├── migrate.js       npm run migrate  -> aplica schema.sql
-│   └── seed.js          npm run seed     -> 6 clientes + admin + contable
+│   ├── schema.sql              DDL: usuarios, bolsillos, movimientos, alertas, creditos
+│   ├── schema_creditos.sql     migración aditiva idempotente (v1.1.0)
+│   ├── migrate.js              npm run migrate            -> aplica schema.sql (destructivo)
+│   ├── migrate_creditos.js     npm run migrate:creditos   -> aplica schema_creditos.sql (seguro en prod)
+│   └── seed.js                 npm run seed               -> 6 clientes + admin + contable
 ├── src/
 │   ├── config.js        variables de entorno
 │   ├── db.js            pool de conexión y helper enTransaccion()
@@ -92,7 +103,8 @@ caída momentánea de la base no marque el despliegue como fallido.
 |---|---|
 | `npm start` | arranca el servidor |
 | `npm run dev` | arranca con `node --watch` |
-| `npm run migrate` | aplica `db/schema.sql` |
+| `npm run migrate` | aplica `db/schema.sql` (**destructivo**: hace DROP TABLE) |
+| `npm run migrate:creditos` | aplica `db/schema_creditos.sql` (**aditivo e idempotente**, seguro contra la base en producción) |
 | `npm run seed` | carga los 6 clientes, admin y contable |
 | `npm test` | pruebas de lógica pura (no necesita PostgreSQL) |
 
@@ -100,14 +112,16 @@ caída momentánea de la base no marque el despliegue como fallido.
 
 ## 3. Base de datos
 
-Cuatro tablas. El esquema completo está en `db/schema.sql`.
+Cinco tablas. El esquema completo está en `db/schema.sql`. Ver también
+[`docs/MODELO_DATOS.md`](../docs/MODELO_DATOS.md) para el diagrama completo.
 
 | tabla | para qué | restricciones destacadas |
 |---|---|---|
 | `usuarios` | clientes, admin y contable | `CHECK (disponible >= 0)` (RN-01), `rol IN (usuario, admin, contable)`, `estado IN (activa, bloqueada)`, `tope_diario <= tope_mensual`, `cuenta` UNIQUE, correo único |
 | `bolsillos` | metas de ahorro de **una** cuenta | FK a `usuarios` (RN-02), `CHECK (saldo >= 0)`, nombre único por usuario |
-| `movimientos` | libro de operaciones | `codigo` legible `TX-####` UNIQUE, `CHECK (valor > 0)`, motivo obligatorio si no está Completada (RN-03), `original_id` FK a sí misma para reversiones (RN-05), una sola reversión por original |
+| `movimientos` | libro de operaciones | `codigo` legible `TX-####` UNIQUE, `CHECK (valor > 0)`, motivo obligatorio si no está Completada (RN-03), `original_id` FK a sí misma para reversiones (RN-05), una sola reversión por original. Tipo acepta `'Crédito'` desde v1.1.0 |
 | `alertas` | notificaciones al usuario (RF-06) | FK a `usuarios`, índice por usuario y fecha |
+| `creditos` | créditos desembolsados (v1.1.0) | FK a `usuarios`, `saldo_pendiente >= 0`, invariante `(estado = 'pagado') = (saldo_pendiente = 0)` |
 
 Puntos del modelo que conviene saber al defenderlo:
 
@@ -316,6 +330,30 @@ curl -X POST $API/api/bolsillos/1/retirar \
   -d '{"monto":50000}'
 ```
 
+### Créditos (RF-09, v1.1.0)
+
+```bash
+# Listar los creditos del usuario
+curl $API/api/creditos -H "Authorization: Bearer $TOKEN"
+
+# Solicitar un credito (desembolso instantaneo al disponible)
+curl -X POST $API/api/creditos \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"tipo":"libre","monto":3000000,"plazo":12}'
+# tipo: libre | vehiculo | hipoteca
+# monto: 500000..20000000
+# plazo: 12, 24, 36 o 48
+
+# Pagar la cuota del mes (descuenta cuota, o el saldo pendiente si es menor)
+curl -X POST $API/api/creditos/1/pagar-cuota -H "Authorization: Bearer $TOKEN"
+
+# Pagar total (liquida el saldo pendiente de una vez)
+curl -X POST $API/api/creditos/1/pagar-total -H "Authorization: Bearer $TOKEN"
+```
+
+Diseño, fórmulas (amortización francesa), tasas, flujo transaccional y
+verificación e2e en [`docs/MODULO_CREDITO.md`](../docs/MODULO_CREDITO.md).
+
 ### Administrador (RF-05)
 
 ```bash
@@ -381,6 +419,10 @@ curl -i -X POST $API/api/transferencias -H "Authorization: Bearer $CONTA" \
 | POST | `/api/bolsillos/:id/aportar` | usuario |
 | POST | `/api/bolsillos/:id/retirar` | usuario |
 | GET | `/api/alertas` | usuario |
+| GET | `/api/creditos` | usuario |
+| POST | `/api/creditos` | usuario |
+| POST | `/api/creditos/:id/pagar-cuota` | usuario |
+| POST | `/api/creditos/:id/pagar-total` | usuario |
 | GET | `/api/admin/usuarios?q=` | admin |
 | PATCH | `/api/admin/usuarios/:doc/estado` | admin |
 | GET | `/api/admin/movimientos?estado&tipo&cuenta` | admin |
