@@ -12,7 +12,7 @@
    hasheadas con bcrypt.
    ============================================================ */
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { config, verificarConfig } from '../src/config.js';
 import { pool, enTransaccion, cerrarPool } from '../src/db.js';
 

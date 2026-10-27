@@ -3,7 +3,7 @@
    Las contrasenas SOLO se guardan como hash bcrypt (RNF-02).
    ============================================================ */
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { config } from '../config.js';
 import { enTransaccion, query } from '../db.js';
 import { malaPeticion, conflicto, noAutenticado, prohibido } from '../lib/errores.js';
