@@ -1,0 +1,26 @@
+{
+  "name": "fintec-api",
+  "version": "1.0.0",
+  "description": "Backend FINTEC — billetera digital (proyecto academico). Node 24 + Express 5 + PostgreSQL sin ORM.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node db/migrate.js",
+    "seed": "node db/seed.js",
+    "test": "node --test \"test/*.test.js\"",
+    "check": "node --check src/server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "express": "^5.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

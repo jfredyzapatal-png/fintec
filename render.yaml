@@ -1,0 +1,196 @@
+# ============================================================================
+# FINTEC - Blueprint de Render (Infrastructure as Code)
+# ============================================================================
+# Este archivo describe TODA la infraestructura del proyecto. Render lo lee
+# cuando creas un "Blueprint" (New > Blueprint) y crea de golpe:
+#   1. Una base de datos PostgreSQL
+#   2. Un Web Service con la API (Node + Express, carpeta api/)
+#   3. Un Static Site con el front (HTML/CSS/JS, carpeta web/)
+#
+# UBICACION: para que Render lo encuentre automaticamente, este archivo debe
+# estar en la RAIZ del repositorio. Si lo dejas en deploy/, al crear el
+# Blueprint hay que indicarle la ruta "deploy/render.yaml" en el campo
+# "Blueprint file path" (ver GUIA_DESPLIEGUE.md, paso 5).
+#
+# Spec oficial: https://render.com/docs/blueprint-spec
+# ============================================================================
+
+
+# ----------------------------------------------------------------------------
+# SERVICIOS (API + front)
+# ----------------------------------------------------------------------------
+services:
+
+  # ==========================================================================
+  # 1) API — Web Service Node.js
+  # ==========================================================================
+  - type: web                  # "web": servicio accesible desde internet por HTTPS
+    name: fintec-api           # nombre del servicio; genera la URL
+                               #   https://fintec-api.onrender.com
+                               #   (si el nombre ya esta tomado globalmente,
+                               #    Render le anade un sufijo aleatorio)
+    runtime: node              # entorno nativo de Node (sin Docker)
+    region: oregon             # Debe ser LA MISMA que la de la base de datos
+                               # para poder usar la conexion interna (privada).
+                               # Valores validos: oregon, ohio, virginia,
+                               # frankfurt, singapore. Por defecto: oregon.
+    plan: free                 # plan gratuito (ver limites en GUIA_DESPLIEGUE.md)
+    rootDir: api               # Render entra a la carpeta api/ antes de
+                               # ejecutar build y start. Ademas, los cambios
+                               # fuera de api/ NO disparan un re-deploy.
+
+    # --- Build -------------------------------------------------------------
+    # "npm ci" instala exactamente lo que dice package-lock.json. Es mas
+    # rapido y reproducible que "npm install", pero EXIGE que el
+    # package-lock.json este commiteado. Si no lo tienen, cambien a
+    # "npm install".
+    buildCommand: npm ci --omit=dev
+
+    # --- Arranque ----------------------------------------------------------
+    # Ejecuta el script "start" de api/package.json.
+    # IMPORTANTE: el servidor debe escuchar en process.env.PORT y en el host
+    # 0.0.0.0, no en 127.0.0.1, o Render no detectara el puerto abierto y el
+    # deploy quedara colgado en "In progress".
+    startCommand: npm start
+
+    # --- Health check ------------------------------------------------------
+    # Render pide esta ruta para decidir si el deploy fue exitoso y para
+    # reiniciar el servicio si deja de responder. La API debe exponer un
+    # endpoint que devuelva 200 sin requerir autenticacion.
+    # Si la API NO tiene /api/health, comenta estas dos lineas o cambia la
+    # ruta: un healthCheckPath que devuelve 404 hace fallar TODOS los deploys.
+    healthCheckPath: /api/health
+
+    # --- Despliegue automatico ---------------------------------------------
+    # "commit": re-despliega en cada push a la rama vinculada.
+    # Alternativas: "checksPass" (espera a que pasen los checks de GitHub)
+    # u "off" (solo deploy manual).
+    autoDeployTrigger: commit
+
+    # --- Variables de entorno ----------------------------------------------
+    envVars:
+
+      # Cadena de conexion a PostgreSQL. Render la inyecta automaticamente
+      # tomandola de la base declarada mas abajo (bloque "databases").
+      # "connectionString" = la cadena INTERNA cuando la base y el servicio
+      # estan en la misma region. No hay que copiar nada a mano.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fintec-db
+          property: connectionString
+
+      # Secreto para firmar los JWT. "generateValue: true" hace que Render
+      # genere un valor aleatorio de 256 bits (base64) la primera vez y lo
+      # conserve. Asi el secreto nunca vive en el repositorio.
+      - key: JWT_SECRET
+        generateValue: true
+
+      # Modo produccion de Express (desactiva stack traces detallados,
+      # activa cacheo de vistas, etc.).
+      - key: NODE_ENV
+        value: production
+
+      # Puerto. Render asigna uno e inyecta PORT automaticamente; lo
+      # declaramos explicito solo para dejar claro el contrato con la API.
+      # El codigo DEBE usar process.env.PORT.
+      - key: PORT
+        value: "10000"
+
+      # Version de Node. NODE_VERSION tiene la maxima precedencia sobre
+      # .node-version, .nvmrc y package.json#engines.
+      # Nota: el enunciado del proyecto dice "Node 24"; el valor por defecto
+      # de Render para servicios nuevos ya es una version 24.x, pero fijarlo
+      # evita que un cambio futuro del default rompa el build.
+      - key: NODE_VERSION
+        value: "24"
+
+      # Origen permitido para CORS: la URL del Static Site del front.
+      # "sync: false" significa que Render pregunta el valor UNA VEZ, al crear
+      # el Blueprint, y no lo sobreescribe en sincronizaciones posteriores.
+      # Se usa asi porque la URL del front no se conoce hasta que el Static
+      # Site existe. Primer despliegue: puedes poner "*" y corregirlo despues.
+      - key: CORS_ORIGIN
+        sync: false
+
+
+  # ==========================================================================
+  # 2) FRONT — Static Site
+  # ==========================================================================
+  # Un Static Site solo sirve archivos desde un CDN. No ejecuta Node, no se
+  # suspende por inactividad y no consume horas gratuitas de instancia.
+  - type: web
+    name: fintec-web
+    runtime: static            # marca el servicio como sitio estatico
+    rootDir: web               # carpeta del front dentro del repo
+
+    # El front es HTML/CSS/JS plano: no hay nada que compilar. Render exige
+    # un buildCommand para servicios no-Docker, asi que ponemos un comando
+    # inocuo. Si mas adelante agregan un bundler (Vite, etc.), cambienlo por
+    # "npm ci && npm run build" y ajusten staticPublishPath a "./dist".
+    buildCommand: echo "Front estatico: no requiere build"
+
+    # Carpeta que se publica, relativa a rootDir. "." = la propia carpeta
+    # web/. Debe contener un index.html.
+    staticPublishPath: .
+
+    autoDeployTrigger: commit
+
+    # --- Rutas -------------------------------------------------------------
+    # Render sirve primero cualquier archivo que exista; estas reglas solo
+    # aplican cuando no hay archivo. La regla comodin devuelve index.html
+    # para que no aparezca un 404 al recargar una ruta interna.
+    #
+    # Si el front son varias paginas HTML independientes (login.html,
+    # cuenta.html...) y no una SPA, esta regla no es necesaria: comentala.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+    # --- Cabeceras de seguridad -------------------------------------------
+    # Buenas practicas minimas. No afectan el funcionamiento.
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+
+
+# ----------------------------------------------------------------------------
+# BASE DE DATOS
+# ----------------------------------------------------------------------------
+databases:
+  - name: fintec-db            # nombre de la INSTANCIA en Render.
+                               # No se puede cambiar despues de crearla.
+    databaseName: fintec       # nombre de la base de datos DENTRO del motor
+                               # (lo que iria en "\c fintec" en psql).
+    user: fintec               # usuario PostgreSQL que Render crea.
+    region: oregon             # MISMA region que la API (requisito para usar
+                               # la conexion interna).
+    plan: free                 # ATENCION: el plan gratuito de PostgreSQL
+                               # EXPIRA 30 DIAS DESPUES DE SU CREACION.
+                               # Lee la advertencia destacada en
+                               # GUIA_DESPLIEGUE.md antes del dia de la
+                               # sustentacion.
+    postgresMajorVersion: "17" # Fijamos la version mayor para que el
+                               # comportamiento no cambie si Render actualiza
+                               # su default (hoy es 18). No se puede modificar
+                               # despues de crear la base.
+    ipAllowList: []            # Lista vacia = NINGUNA IP externa puede
+                               # conectarse; solo los servicios de Render en
+                               # la misma region (via conexion interna).
+                               #
+                               # Para correr las migraciones desde tu
+                               # computador con psql necesitas acceso externo.
+                               # Dos opciones:
+                               #   a) borrar esta linea (el default es
+                               #      0.0.0.0/0 = cualquier IP, protegido solo
+                               #      por la contrasena), o
+                               #   b) abrirlo temporalmente desde el dashboard
+                               #      (Info > Networking) y volver a cerrarlo.
+                               # La opcion (b) es la recomendada.
