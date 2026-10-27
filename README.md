@@ -42,6 +42,7 @@ aplicación real es lo que se defiende como entrega final del proyecto.
 | Documento | Para qué |
 |---|---|
 | [`docs/MANUAL_USUARIO.md`](docs/MANUAL_USUARIO.md) | Qué puede hacer cada rol (usuario, admin, contable) desde la interfaz |
+| [`docs/REVISION_CALIDAD.md`](docs/REVISION_CALIDAD.md) | Revisión del cumplimiento del Plan de calidad y pruebas sobre v1.1.0 |
 | [`docs/MODULO_CREDITO.md`](docs/MODULO_CREDITO.md) | Diseño, fórmulas y operación del módulo de créditos (v1.1.0) |
 | [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) | Visión de las tres capas, flujos de datos y decisiones técnicas |
 | [`docs/MODELO_DATOS.md`](docs/MODELO_DATOS.md) | Tablas, restricciones e índices de PostgreSQL |
