@@ -4,8 +4,11 @@ node_modules/
 # artefacto generado desde el producto en cada ejecucion de pruebas
 calidad/fintec.core.generated.js
 
-# reporte de cobertura (se regenera con npm run cobertura)
-calidad/evidencia/coverage/
+# salidas de la bateria de calidad (se regeneran al correr npm test / npm run cobertura)
+calidad/evidencia/
+
+# documento generado por `node calidad/generate.js` (se entrega aparte, no vive en el repo)
+docs/Plan_de_calidad_y_pruebas.docx
 
 # temporales de Office y Windows
 ~$*

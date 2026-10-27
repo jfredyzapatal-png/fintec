@@ -27,7 +27,7 @@ Todo lo que sigue se verificó leyendo `producto/Fintec.html` (1039 líneas),
 | Los convenios son una constante de 4 cadenas | `const CONVENIOS = ['EPM','Universidad','Acueducto','Claro']` |
 | `origen` y `destino` de un movimiento son cadenas heterogéneas | pueden ser un número de cuenta, el nombre de un convenio o el nombre de un bolsillo |
 | Las reversiones se enlazan con un campo suelto | `m.revertida`, `m.origenReversion` |
-| La batería de pruebas tiene 47 casos (`it(...)`) con Vitest + jsdom | `calidad/tests/fintec.test.mjs`; la evidencia guardada en `calidad/evidencia/vitest-output.txt` corresponde a una corrida anterior de 40 pruebas, 84,09 % de ramas |
+| La batería de pruebas tiene 47 casos (`it(...)`) con Vitest + jsdom | `calidad/tests/fintec.test.mjs`; al ejecutar `npm run cobertura` dentro de `calidad/` se regenera `calidad/evidencia/vitest-output.txt` con la salida completa y la tabla de cobertura por ramas |
 | Las pruebas corren contra el producto entregado, no contra una copia | `tests/extract-core.mjs` extrae la lógica de `Fintec.html` en cada ejecución |
 
 ### Dos defectos detectados al leer el código para este plan
