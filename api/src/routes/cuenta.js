@@ -8,6 +8,7 @@ import * as cuenta from '../services/cuenta.js';
 import * as transferencias from '../services/transferencias.js';
 import * as pagos from '../services/pagos.js';
 import * as bolsillos from '../services/bolsillos.js';
+import * as creditos from '../services/creditos.js';
 
 export const rutasCuenta = Router();
 // RN-06: red de seguridad: con sesion ya resuelta, el contable no
@@ -103,6 +104,40 @@ rutasCuenta.post('/bolsillos/:id/aportar', requierePermiso('bolsillo:mover'), as
 rutasCuenta.post('/bolsillos/:id/retirar', requierePermiso('bolsillo:mover'), async (req, res, next) => {
   try {
     const r = await bolsillos.retirar(req.usuario, req.params.id, { monto: req.body?.monto });
+    res.status(201).json(r);
+  } catch (e) { next(e); }
+});
+
+/* ---------- creditos ---------- */
+
+/* GET /api/creditos */
+rutasCuenta.get('/creditos', requierePermiso('credito:leer'), async (req, res, next) => {
+  try {
+    res.json(await creditos.listar(req.usuario));
+  } catch (e) { next(e); }
+});
+
+/* POST /api/creditos */
+rutasCuenta.post('/creditos', requierePermiso('credito:solicitar'), async (req, res, next) => {
+  try {
+    const { tipo, monto, plazo } = req.body || {};
+    const r = await creditos.solicitar(req.usuario, { tipo, monto, plazo });
+    res.status(201).json(r);
+  } catch (e) { next(e); }
+});
+
+/* POST /api/creditos/:id/pagar-cuota */
+rutasCuenta.post('/creditos/:id/pagar-cuota', requierePermiso('credito:pagar'), async (req, res, next) => {
+  try {
+    const r = await creditos.pagarCuota(req.usuario, req.params.id);
+    res.status(201).json(r);
+  } catch (e) { next(e); }
+});
+
+/* POST /api/creditos/:id/pagar-total */
+rutasCuenta.post('/creditos/:id/pagar-total', requierePermiso('credito:pagar'), async (req, res, next) => {
+  try {
+    const r = await creditos.pagarTotal(req.usuario, req.params.id);
     res.status(201).json(r);
   } catch (e) { next(e); }
 });

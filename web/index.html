@@ -102,7 +102,13 @@
     <div class="sim-card">
       <div>
         <h2 class="d">Simula tu crédito</h2>
-        <p>Mueve el monto y el plazo para ver una cuota aproximada.</p>
+        <p>Elige el tipo, mueve el monto y el plazo para ver una cuota aproximada.</p>
+        <div style="color:#C9DDFF;font-size:13px;margin-bottom:6px">Tipo de crédito</div>
+        <div id="tipoCredito" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+          <button type="button" class="chip" data-tipo="libre" aria-pressed="true" onclick="elegirTipo('libre')">Libre inversión</button>
+          <button type="button" class="chip" data-tipo="vehiculo" aria-pressed="false" onclick="elegirTipo('vehiculo')">Vehículo</button>
+          <button type="button" class="chip" data-tipo="hipoteca" aria-pressed="false" onclick="elegirTipo('hipoteca')">Hipoteca</button>
+        </div>
         <label for="monto" style="color:#C9DDFF">Monto: <strong id="montoLbl">$5.000.000</strong></label>
         <input type="range" id="monto" min="500000" max="20000000" step="100000" value="5000000" oninput="simular()" />
         <div class="sim-row"><span>$500.000</span><span>$20.000.000</span></div>
@@ -114,7 +120,7 @@
         <span style="color:#C9DDFF;font-size:13px">Cuota mensual aproximada</span>
         <div class="d big" id="cuota">$258.404</div>
         <button class="btn" style="background:#fff;color:var(--navy)" onclick="go('registro')">Abrir cuenta para solicitarlo</button>
-        <p class="sim-note">Calculado a una tasa fija de 1,8% mensual (~23,9% E.A.). Valor simulado con fines ilustrativos para este prototipo académico; no constituye una oferta real de crédito.</p>
+        <p class="sim-note" id="simNota">Calculado a una tasa fija de 1,8% mensual (~23,9% E.A.). Valor simulado con fines ilustrativos para este prototipo académico; no constituye una oferta real de crédito.</p>
       </div>
     </div>
   </div>
@@ -174,6 +180,7 @@
 <section class="screen" id="u-movimientos"><header class="app"></header><div class="wrap" id="b-movimientos"></div></section>
 <section class="screen" id="u-notificaciones"><header class="app"></header><div class="wrap" style="max-width:680px" id="b-alertas"></div></section>
 <section class="screen" id="u-reportes"><header class="app"></header><div class="wrap" style="max-width:520px" id="b-reportes"></div></section>
+<section class="screen" id="u-creditos"><header class="app"></header><div class="wrap" id="b-creditos"></div></section>
 
 <section class="screen" id="a-panel">
   <header class="app"><div class="d">FINTEC · Admin</div><nav><button class="on">Cuentas</button><button onclick="go('a-movimientos')">Historial</button><button onclick="salir()">Salir</button></nav></header>

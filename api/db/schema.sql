@@ -15,6 +15,7 @@
 BEGIN;
 
 DROP TABLE IF EXISTS alertas        CASCADE;
+DROP TABLE IF EXISTS creditos       CASCADE;
 DROP TABLE IF EXISTS movimientos    CASCADE;
 DROP TABLE IF EXISTS bolsillos      CASCADE;
 DROP TABLE IF EXISTS usuarios       CASCADE;
@@ -95,7 +96,7 @@ CREATE TABLE movimientos (
                   DEFAULT ('TX-' || nextval('movimientos_codigo_seq'))
                   CHECK (codigo ~ '^TX-[0-9]+$'),
   tipo          TEXT NOT NULL
-                  CHECK (tipo IN ('Transferencia', 'Pago', 'Bolsillo', 'Reversión', 'Cancelación')),
+                  CHECK (tipo IN ('Transferencia', 'Pago', 'Bolsillo', 'Reversión', 'Cancelación', 'Crédito')),
   estado        TEXT NOT NULL
                   CHECK (estado IN ('Completada', 'Rechazada', 'Cancelada')),
   origen        TEXT NOT NULL,
@@ -141,5 +142,43 @@ CREATE TABLE alertas (
 );
 
 CREATE INDEX alertas_usuario_fecha_idx ON alertas (usuario_doc, creado_en DESC);
+
+-- ------------------------------------------------------------
+-- creditos  (RF-09 añadido para la demo: producto académico)
+--
+-- Cada registro es un credito desembolsado a UNA cuenta. En el
+-- desembolso se abona el principal al disponible del usuario y se
+-- registra un movimiento tipo 'Crédito'. Las cuotas se descuentan
+-- del disponible, tambien como movimiento 'Crédito'. El principal,
+-- el plazo y la tasa se congelan al momento del desembolso para que
+-- la cuota no cambie si el admin modifica las tasas mas adelante.
+--
+-- saldo_pendiente = total_a_pagar - sumatoria(pagos realizados).
+-- Al llegar a 0 el credito queda en estado 'pagado' y no admite
+-- mas pagos. 'cuota' es el valor fijo de una cuota mensual.
+-- ------------------------------------------------------------
+CREATE TABLE creditos (
+  id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  usuario_doc     TEXT NOT NULL REFERENCES usuarios (doc) ON DELETE RESTRICT,
+  tipo            TEXT NOT NULL
+                    CHECK (tipo IN ('libre', 'vehiculo', 'hipoteca')),
+  monto           NUMERIC(14,2) NOT NULL CHECK (monto > 0),
+  plazo_meses     INTEGER       NOT NULL CHECK (plazo_meses > 0),
+  tasa_mensual    NUMERIC(6,4)  NOT NULL CHECK (tasa_mensual > 0),
+  cuota           NUMERIC(14,2) NOT NULL CHECK (cuota > 0),
+  total_a_pagar   NUMERIC(14,2) NOT NULL CHECK (total_a_pagar > 0),
+  saldo_pendiente NUMERIC(14,2) NOT NULL
+                    CONSTRAINT creditos_saldo_no_negativo CHECK (saldo_pendiente >= 0),
+  cuotas_pagadas  INTEGER       NOT NULL DEFAULT 0 CHECK (cuotas_pagadas >= 0),
+  estado          TEXT          NOT NULL DEFAULT 'activo'
+                    CHECK (estado IN ('activo', 'pagado')),
+  fecha_desembolso TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  cerrado_en      TIMESTAMPTZ,
+  CONSTRAINT creditos_estado_coherente
+    CHECK ((estado = 'pagado') = (saldo_pendiente = 0))
+);
+
+CREATE INDEX creditos_usuario_idx ON creditos (usuario_doc);
+CREATE INDEX creditos_estado_idx  ON creditos (estado);
 
 COMMIT;

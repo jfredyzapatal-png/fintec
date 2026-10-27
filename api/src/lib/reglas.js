@@ -130,6 +130,7 @@ export const PERMISOS = {
   usuario: [
     'cuenta:leer', 'cuenta:topes', 'movimientos:propios', 'transferencia:crear',
     'pago:crear', 'bolsillo:crear', 'bolsillo:mover', 'alertas:propias', 'password:cambiar',
+    'credito:leer', 'credito:solicitar', 'credito:pagar',
   ],
   admin: [
     'admin:usuarios', 'admin:estado', 'admin:movimientos',

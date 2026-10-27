@@ -226,6 +226,18 @@
 
     alertas: function () { return pedir('GET', '/api/alertas'); },
 
+    /* ---------- creditos ---------- */
+    listarCreditos: function () { return pedir('GET', '/api/creditos'); },
+    solicitarCredito: function (tipo, monto, plazo) {
+      return pedir('POST', '/api/creditos', { tipo: tipo, monto: monto, plazo: plazo });
+    },
+    pagarCuotaCredito: function (id) {
+      return pedir('POST', '/api/creditos/' + encodeURIComponent(id) + '/pagar-cuota');
+    },
+    pagarTotalCredito: function (id) {
+      return pedir('POST', '/api/creditos/' + encodeURIComponent(id) + '/pagar-total');
+    },
+
     /* ---------- admin ---------- */
     adminUsuarios: function (q) { return pedir('GET', '/api/admin/usuarios' + qs({ q: q })); },
     adminEstado: function (doc, estado) {

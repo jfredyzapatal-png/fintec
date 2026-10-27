@@ -207,8 +207,8 @@ function pintarInicio() {
         '<div class="grid">' +
           (bolsillos.map(b => '<div class="card"><div style="color:var(--dim)">' + esc(b.nombre) + '</div><div class="d" style="font-size:28px">' + fmt(b.saldo) + '</div></div>').join('') ||
            '<div class="card"><div style="color:var(--dim)">Sin bolsillos</div><p>Crea uno para separar plata de tus metas.</p></div>') +
-          '<div class="promo"><div style="font-weight:700">¿Necesitas un crédito?</div><p>Simula tu cuota de libre inversión en minutos.</p>' +
-          '<button class="btn" onclick="go(\'home\');setTimeout(()=>document.getElementById(\'simulador\').scrollIntoView({behavior:\'smooth\'}),50)">Simular ahora</button></div>' +
+          '<div class="promo"><div style="font-weight:700">¿Necesitas un crédito?</div><p>Libre inversión, vehículo o hipoteca. Desembolso al instante en tu cuenta.</p>' +
+          '<button class="btn" onclick="go(\'u-creditos\')">Solicitar crédito</button></div>' +
         '</div>';
     })
     .catch(e => { if (!sesionVencida(e)) fallo('b-inicio', '', e, 'u-inicio'); });
@@ -375,6 +375,159 @@ function crearBolsillo() {
   API.crearBolsillo(nombre)
     .then(() => { ping('Bolsillo "' + nombre + '" creado'); pintarBolsillos(); })
     .catch(e => { if (!sesionVencida(e)) err('bl-error', mensajeError(e)); });
+}
+
+/* ---------- creditos ---------- */
+const CRED_TASAS = { libre: 0.025, vehiculo: 0.019, hipoteca: 0.015 };
+const CRED_NOMBRES = { libre: 'Libre inversión', vehiculo: 'Vehículo', hipoteca: 'Hipoteca' };
+
+function normCredito(c) {
+  return {
+    id: primero(c, ['id'], 0),
+    tipo: primero(c, ['tipo'], 'libre'),
+    tipoNombre: primero(c, ['tipoNombre'], CRED_NOMBRES[primero(c, ['tipo'], 'libre')] || 'Crédito'),
+    monto: num(primero(c, ['monto'], 0)),
+    plazoMeses: num(primero(c, ['plazoMeses', 'plazo_meses'], 0)),
+    tasaMensual: Number(primero(c, ['tasaMensual', 'tasa_mensual'], 0)),
+    cuota: num(primero(c, ['cuota'], 0)),
+    totalAPagar: num(primero(c, ['totalAPagar', 'total_a_pagar'], 0)),
+    saldoPendiente: num(primero(c, ['saldoPendiente', 'saldo_pendiente'], 0)),
+    cuotasPagadas: num(primero(c, ['cuotasPagadas', 'cuotas_pagadas'], 0)),
+    estado: primero(c, ['estado'], 'activo'),
+    fechaDesembolso: primero(c, ['fechaDesembolso', 'fecha_desembolso'], null),
+  };
+}
+
+function cuotaPreview() {
+  const tipo = val('cr-tipo') || 'libre';
+  const monto = num(val('cr-monto'));
+  const plazo = num(val('cr-plazo'));
+  const r = CRED_TASAS[tipo] || CRED_TASAS.libre;
+  const prev = el('cr-prev');
+  if (!prev) return;
+  if (!monto || !plazo || plazo <= 0) {
+    prev.textContent = 'Completa monto y plazo para ver la cuota.';
+    return;
+  }
+  const cuota = monto * r / (1 - Math.pow(1 + r, -plazo));
+  const total = cuota * plazo;
+  const pct = (r * 100).toFixed(1).replace('.', ',');
+  prev.innerHTML =
+    'Cuota mensual aproximada: <strong>' + fmt(cuota) + '</strong>' +
+    ' · total a pagar: <strong>' + fmt(total) + '</strong>' +
+    ' · tasa ' + pct + '% mensual';
+}
+
+function pintarCreditos() {
+  cargando('b-creditos', 'Crédito');
+  Promise.all([API.cuentaMe(), API.listarCreditos()])
+    .then(([c, cs]) => {
+      cuenta = c || {};
+      const disponible = num(primero(cuenta, ['disponible', 'saldo'], 0));
+      const nroCuenta = primero(cuenta, ['cuenta'], (sesion && sesion.cuenta) || '—');
+      const lista = comoLista(cs, ['creditos']).map(normCredito);
+      const activos = lista.filter(c => c.estado === 'activo');
+      const cerrados = lista.filter(c => c.estado !== 'activo');
+
+      const tarjetaCredito = (c) => {
+        const avance = c.totalAPagar > 0 ? Math.min(100, Math.round(((c.totalAPagar - c.saldoPendiente) / c.totalAPagar) * 100)) : 0;
+        const pct = (c.tasaMensual * 100).toFixed(1).replace('.', ',');
+        const activo = c.estado === 'activo';
+        return '<div class="card">' +
+          '<h3>' + esc(c.tipoNombre) + ' · ' + fmt(c.monto) + ' a ' + c.plazoMeses + 'm</h3>' +
+          '<div style="color:var(--dim);font-size:13px">Tasa ' + pct + '% mensual · cuota ' + fmt(c.cuota) + '</div>' +
+          '<div class="d" style="font-size:22px;margin-top:6px">Saldo pendiente: ' + fmt(c.saldoPendiente) + '</div>' +
+          '<div style="color:var(--dim);font-size:13px">Cuotas pagadas: ' + c.cuotasPagadas + '/' + c.plazoMeses + ' · avance ' + avance + '%</div>' +
+          (activo
+            ? '<div class="row" style="margin-top:10px">' +
+                '<button class="btn mint" data-id="' + esc(c.id) + '" onclick="pagarCuotaCredito(this.dataset.id)">Pagar cuota (' + fmt(Math.min(c.cuota, c.saldoPendiente)) + ')</button>' +
+                '<button class="btn ghost" data-id="' + esc(c.id) + '" onclick="pagarTotalCredito(this.dataset.id, ' + c.saldoPendiente + ')">Pagar total (' + fmt(c.saldoPendiente) + ')</button>' +
+              '</div>'
+            : '<p style="color:var(--dim);margin:10px 0 0">Crédito pagado. Gracias por usar FINTEC.</p>') +
+          '</div>';
+      };
+
+      el('b-creditos').innerHTML =
+        '<h2 class="d">Crédito</h2>' +
+        '<p style="color:var(--dim)">Disponible en tu cuenta ' + esc(nroCuenta) + ': <strong>' + fmt(disponible) + '</strong></p>' +
+        '<p id="cr-error" class="err" role="alert" aria-live="polite"></p>' +
+
+        '<div class="card">' +
+          '<h3>Solicitar un crédito</h3>' +
+          '<p style="color:var(--dim);font-size:13px;margin-top:0">El desembolso se abona en el momento a tu cuenta. Después puedes pagar cuota por cuota o cancelar el total.</p>' +
+          '<label for="cr-tipo">Tipo</label>' +
+          '<select id="cr-tipo" onchange="cuotaPreview()">' +
+            '<option value="libre">Libre inversión (2,5% mensual)</option>' +
+            '<option value="vehiculo">Vehículo (1,9% mensual)</option>' +
+            '<option value="hipoteca">Hipoteca (1,5% mensual)</option>' +
+          '</select>' +
+          '<label for="cr-monto">Monto (entre $500.000 y $20.000.000)</label>' +
+          '<input id="cr-monto" inputmode="numeric" placeholder="5000000" oninput="cuotaPreview()" />' +
+          '<label for="cr-plazo">Plazo (meses)</label>' +
+          '<select id="cr-plazo" onchange="cuotaPreview()">' +
+            '<option value="12">12 meses</option>' +
+            '<option value="24" selected>24 meses</option>' +
+            '<option value="36">36 meses</option>' +
+            '<option value="48">48 meses</option>' +
+          '</select>' +
+          '<p id="cr-prev" style="color:var(--dim);font-size:13px;margin-top:10px">Completa monto y plazo para ver la cuota.</p>' +
+          '<div class="row"><button class="btn mint" onclick="solicitarCredito()">Solicitar y recibir desembolso</button></div>' +
+        '</div>' +
+
+        '<h3 class="d" style="margin-top:28px">Mis créditos activos</h3>' +
+        '<div class="grid">' +
+          (activos.length ? activos.map(tarjetaCredito).join('') : '<div class="card"><p style="color:var(--dim);margin:0">No tienes créditos activos todavía.</p></div>') +
+        '</div>' +
+
+        (cerrados.length
+          ? '<h3 class="d" style="margin-top:28px">Créditos cerrados</h3>' +
+            '<div class="grid">' + cerrados.map(tarjetaCredito).join('') + '</div>'
+          : '');
+
+      cuotaPreview();
+    })
+    .catch(e => { if (!sesionVencida(e)) fallo('b-creditos', 'Crédito', e, 'u-creditos'); });
+}
+
+function solicitarCredito() {
+  const tipo = val('cr-tipo') || 'libre';
+  const monto = num(val('cr-monto'));
+  const plazo = num(val('cr-plazo'));
+  if (!monto || monto < 500000 || monto > 20000000) {
+    err('cr-error', 'El monto debe estar entre $500.000 y $20.000.000.'); return;
+  }
+  if (![12, 24, 36, 48].includes(plazo)) {
+    err('cr-error', 'El plazo debe ser 12, 24, 36 o 48 meses.'); return;
+  }
+  err('cr-error', '');
+  API.solicitarCredito(tipo, monto, plazo)
+    .then(r => {
+      const desembolso = num(primero(r || {}, ['disponible'], 0));
+      ping('Desembolso recibido · nuevo disponible ' + fmt(desembolso));
+      pintarCreditos();
+    })
+    .catch(e => { if (!sesionVencida(e)) err('cr-error', mensajeError(e)); });
+}
+
+function pagarCuotaCredito(id) {
+  err('cr-error', '');
+  API.pagarCuotaCredito(id)
+    .then(r => {
+      const c = normCredito(primero(r || {}, ['credito'], {}));
+      ping(c.estado === 'pagado'
+        ? '¡Crédito ' + esc(c.tipoNombre) + ' pagado totalmente!'
+        : 'Cuota pagada · saldo pendiente ' + fmt(c.saldoPendiente));
+      pintarCreditos();
+    })
+    .catch(e => { if (!sesionVencida(e)) err('cr-error', mensajeError(e)); });
+}
+
+function pagarTotalCredito(id, total) {
+  if (!confirm('¿Pagar el total de ' + fmt(total) + ' y cerrar este crédito?')) return;
+  err('cr-error', '');
+  API.pagarTotalCredito(id)
+    .then(() => { ping('Crédito cerrado · pago total ' + fmt(total)); pintarCreditos(); })
+    .catch(e => { if (!sesionVencida(e)) err('cr-error', mensajeError(e)); });
 }
 
 function filaMov(m, propia) {
@@ -826,6 +979,7 @@ const H = '<div class="d">FINTEC</div>' +
       '<button data-g="u-transferir">Enviar</button>' +
       '<button data-g="u-bolsillos">Bolsillos</button>' +
       '<button data-g="u-pagos">Pagar</button>' +
+      '<button data-g="u-creditos">Crédito</button>' +
       '<button data-g="u-movimientos">Movimientos</button>' +
       '<button data-g="u-notificaciones">Alertas</button>' +
       '<button data-g="u-reportes">Exportar</button>' +
@@ -834,7 +988,8 @@ const H = '<div class="d">FINTEC</div>' +
 
 const PINTORES = {
   'u-inicio': pintarInicio, 'u-transferir': pintarTransferir, 'u-bolsillos': pintarBolsillos,
-  'u-pagos': pintarPagos, 'u-movimientos': pintarMovimientos, 'u-notificaciones': pintarAlertas,
+  'u-pagos': pintarPagos, 'u-creditos': pintarCreditos,
+  'u-movimientos': pintarMovimientos, 'u-notificaciones': pintarAlertas,
   'u-reportes': pintarReportes, 'a-panel': pintarAdmin, 'a-movimientos': pintarAdminMovimientos,
   'c-panel': pintarContable, 'c-reportes': pintarCReportes
 };
@@ -843,14 +998,15 @@ const PRIVADAS = Object.keys(PINTORES);
    navegacion: la autorizacion real la impone la API en cada peticion. */
 const ROL_PANTALLA = {
   'u-inicio': 'usuario', 'u-transferir': 'usuario', 'u-bolsillos': 'usuario',
-  'u-pagos': 'usuario', 'u-movimientos': 'usuario', 'u-notificaciones': 'usuario',
+  'u-pagos': 'usuario', 'u-creditos': 'usuario',
+  'u-movimientos': 'usuario', 'u-notificaciones': 'usuario',
   'u-reportes': 'usuario',
   'a-panel': 'admin', 'a-movimientos': 'admin',
   'c-panel': 'contable', 'c-reportes': 'contable'
 };
 
 function cabecera(id) {
-  document.querySelectorAll('#u-inicio header, #u-transferir header, #u-bolsillos header, #u-pagos header, #u-movimientos header, #u-notificaciones header, #u-reportes header').forEach(h => {
+  document.querySelectorAll('#u-inicio header, #u-transferir header, #u-bolsillos header, #u-pagos header, #u-creditos header, #u-movimientos header, #u-notificaciones header, #u-reportes header').forEach(h => {
     h.innerHTML = H;
     h.querySelectorAll('[data-g]').forEach(b => {
       if (b.dataset.g === id) b.classList.add('on');
@@ -898,11 +1054,36 @@ function detenerInactividad() { clearTimeout(temporizadorInactividad); temporiza
   document.addEventListener(ev, () => { if (sesion) reiniciarInactividad(); }, { passive: true })
 );
 
+/* Tasas mensuales por tipo de credito (prototipo academico, no son ofertas reales).
+   Los rangos van de 1,5% a 2,5% mensual para quedarse dentro de valores de mercado
+   habituales en Colombia: la hipoteca es la mas barata, libre inversion la mas cara. */
+const TASAS_CREDITO = { libre: 0.025, vehiculo: 0.019, hipoteca: 0.015 };
+const NOMBRES_CREDITO = { libre: 'libre inversión', vehiculo: 'vehículo', hipoteca: 'hipoteca' };
+let tipoCreditoSel = 'libre';
+
+function elegirTipo(t) {
+  if (!(t in TASAS_CREDITO)) return;
+  tipoCreditoSel = t;
+  document.querySelectorAll('#tipoCredito .chip').forEach(b => {
+    b.setAttribute('aria-pressed', b.dataset.tipo === t ? 'true' : 'false');
+  });
+  simular();
+}
+
 function simular() {
-  const monto = +el('monto').value, plazo = +el('plazo').value, r = 0.018;
+  const monto = +el('monto').value, plazo = +el('plazo').value;
+  const r = TASAS_CREDITO[tipoCreditoSel] || 0.025;
   el('montoLbl').textContent = fmt(monto);
   el('plazoLbl').textContent = plazo + ' meses';
   el('cuota').textContent = fmt(monto * r / (1 - Math.pow(1 + r, -plazo)));
+  const nota = el('simNota');
+  if (nota) {
+    const pct = (r * 100).toFixed(1).replace('.', ',');
+    const ea  = ((Math.pow(1 + r, 12) - 1) * 100).toFixed(1).replace('.', ',');
+    nota.textContent =
+      `Crédito de ${NOMBRES_CREDITO[tipoCreditoSel]} · tasa fija de ${pct}% mensual (~${ea}% E.A.). ` +
+      `Valor simulado con fines ilustrativos para este prototipo académico; no constituye una oferta real de crédito.`;
+  }
 }
 
 /* ---------- arranque ---------- */

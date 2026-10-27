@@ -52,6 +52,9 @@ h1,h2,h3,.d{font-family:Syne,sans-serif}
 .sim-result{background:#ffffff1a;border:1px solid #ffffff33;border-radius:18px;padding:22px}
 .sim-result .big{font-size:34px;margin:4px 0}
 .sim-note{font-size:11px;color:#C9DDFF;margin-top:14px}
+.chip{background:transparent;color:#fff;border:1px solid #ffffff55;border-radius:999px;padding:6px 14px;font-size:13px;font-family:inherit;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.chip:hover{background:#ffffff1a}
+.chip[aria-pressed="true"]{background:#fff;color:#0B1E46;border-color:#fff;font-weight:600}
 
 .testimonials{max-width:1180px;margin:0 auto 64px;padding:0 32px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .testi{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}

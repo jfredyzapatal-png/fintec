@@ -59,7 +59,7 @@ export async function resumen({ desde, hasta } = {}) {
               COALESCE(count(m.id), 0)::int AS operaciones,
               COALESCE(SUM(m.valor), 0) AS monto
        FROM (VALUES ('Transferencia'), ('Pago'), ('Bolsillo'),
-                    ('Reversión'), ('Cancelación')) AS t(tipo)
+                    ('Reversión'), ('Cancelación'), ('Crédito')) AS t(tipo)
        LEFT JOIN movimientos m
          ON m.tipo = t.tipo AND m.estado = 'Completada'
             AND m.creado_en BETWEEN $1 AND $2
