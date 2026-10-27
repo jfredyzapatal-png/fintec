@@ -17,8 +17,15 @@ import { config } from './config.js';
 pg.types.setTypeParser(pg.types.builtins.NUMERIC, (v) => (v === null ? null : Number(v)));
 pg.types.setTypeParser(pg.types.builtins.INT8, (v) => (v === null ? null : Number(v)));
 
+/* Render exige TLS en sus bases de datos: sin esto la conexion falla con
+   "SSL/TLS required" y el servicio no arranca. Se usa verificacion completa
+   del certificado (ssl: true), comprobada contra la base de Render.
+   Para una base local sin TLS se apaga con DATABASE_SSL=false. */
+const ssl = process.env.DATABASE_SSL === 'false' ? false : true;
+
 export const pool = new pg.Pool({
   connectionString: config.databaseUrl,
+  ssl,
   max: Number(process.env.PG_POOL_MAX || 10),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
