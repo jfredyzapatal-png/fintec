@@ -2,6 +2,7 @@
   --navy:#0B1E46; --blue:#1757D8; --sky:#27A6E6;
   --bg:#F3F7FC; --card:#FFFFFF; --line:#E3E9F5;
   --ink:#10213F; --dim:#5C6B8C; --mint:#1757D8;
+  --btn-ink:#0B1E46; --btn-line:#6E86B0;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",sans-serif;line-height:1.5}
@@ -14,9 +15,9 @@ h1,h2,h3,.d{font-family:Syne,sans-serif}
 .topnav{display:flex;justify-content:space-between;align-items:center;padding:18px 32px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#ffffffee;backdrop-filter:blur(8px);z-index:5}
 .logo{font-family:Syne,sans-serif;font-weight:800;font-size:22px;background:linear-gradient(135deg,var(--sky),var(--navy));-webkit-background-clip:text;background-clip:text;color:transparent}
 .topnav nav{display:flex;align-items:center;gap:4px}
-.topnav nav button{background:transparent;border:0;color:var(--dim);padding:10px 14px;border-radius:10px;cursor:pointer;font:inherit;font-size:14px}
-.topnav nav button:hover{background:#EEF4FF;color:var(--navy)}
-.topnav .cta{background:var(--blue);color:#fff;font-weight:600;padding:10px 18px;border-radius:10px;border:0;cursor:pointer;font:inherit}
+.topnav nav button{background:#fff;border:1.5px solid var(--btn-line);color:var(--btn-ink);padding:10px 14px;min-height:44px;border-radius:10px;cursor:pointer;font:inherit;font-size:14px;font-weight:600}
+.topnav nav button:hover{background:#E7F0FF;border-color:var(--blue);color:var(--navy)}
+.topnav .cta{background:var(--blue);color:#fff;font-weight:600;padding:10px 18px;min-height:44px;border-radius:10px;border:1.5px solid #1248B8;cursor:pointer;font:inherit}
 
 .hero{padding:64px 32px 40px;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center}
 .hero h1{font-size:44px;line-height:1.08;margin:0 0 16px}
@@ -40,8 +41,8 @@ h1,h2,h3,.d{font-family:Syne,sans-serif}
 .product h3{margin:4px 0 0;font-size:18px}
 .product p{color:var(--dim);font-size:14px;margin:0;flex:1}
 .product .tag{font-size:12px;color:var(--blue);font-weight:600}
-.product .link{background:transparent;border:1px solid var(--line);color:var(--navy);padding:9px 14px;border-radius:10px;cursor:pointer;font:inherit;font-weight:600;text-align:left}
-.product .link:hover{background:#EEF4FF}
+.product .link{background:#fff;border:1.5px solid var(--btn-line);color:var(--btn-ink);padding:10px 14px;min-height:44px;border-radius:10px;cursor:pointer;font:inherit;font-weight:600;text-align:left}
+.product .link:hover{background:#E7F0FF;border-color:var(--blue)}
 
 .sim{max-width:1180px;margin:0 auto 56px;padding:0 32px}
 .sim-card{background:linear-gradient(135deg,#0B1E46,#1757D8);border-radius:28px;padding:36px;display:grid;grid-template-columns:1fr 1fr;gap:32px;color:#fff}
@@ -68,15 +69,19 @@ footer.site{border-top:1px solid var(--line);padding:28px 32px;text-align:center
 .box{width:min(440px,100%);background:var(--card);border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:0 20px 50px -30px rgba(11,30,70,.3)}
 label{display:block;font-size:12px;color:var(--dim);margin:12px 0 6px}
 input,select,textarea{width:100%;background:#F8FAFD;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:12px;font:inherit}
-.btn{border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:600;cursor:pointer}
-.mint{background:var(--mint);color:#fff}.ghost{background:transparent;border:1px solid var(--line);color:var(--navy)}
+.btn{border:1.5px solid transparent;border-radius:12px;padding:12px 16px;min-height:44px;font:inherit;font-weight:600;cursor:pointer;color:var(--btn-ink)}
+.mint{background:var(--mint);color:#fff;border-color:#1248B8}.ghost{background:#fff;border-color:var(--btn-line);color:var(--btn-ink)}
+.ghost:hover{background:#F4F8FF;border-color:var(--blue)}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.chip{background:#EEF4FF;border:1px solid var(--line);color:var(--navy);border-radius:999px;padding:8px 12px;cursor:pointer;font-size:12px}
+.box .chip,.wrap .chip,.card .chip{background:#F4F8FF;border:1.5px solid var(--btn-line);color:var(--btn-ink);border-radius:999px;padding:8px 14px;min-height:40px;cursor:pointer;font-size:13px;font-weight:600}
 
 /* ---- App interno ---- */
-header.app{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#ffffffee;backdrop-filter:blur(10px);z-index:5}
-nav button{background:transparent;border:0;color:var(--dim);margin-right:6px;padding:8px 10px;border-radius:10px;cursor:pointer;font:inherit}
-nav button.on,nav button:hover{color:var(--navy);background:#EEF4FF}
+header.app{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#ffffffee;backdrop-filter:blur(10px);z-index:5}
+header.app nav{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+nav button{background:#fff;border:1.5px solid var(--btn-line);color:var(--btn-ink);margin:0;padding:8px 12px;min-height:40px;border-radius:10px;cursor:pointer;font:inherit;font-weight:600}
+nav button.on,nav button:hover{color:var(--navy);background:#E7F0FF;border-color:var(--blue)}
+button,.btn,.chip{touch-action:manipulation}
+button:focus-visible,.btn:focus-visible,.chip:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .campana{display:inline-flex;align-items:center;gap:6px}
 .badge{display:none;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#C23434;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}
 .badge.on{display:inline-block}
@@ -96,10 +101,23 @@ nav button.on,nav button:hover{color:var(--navy);background:#EEF4FF}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
 .promo{background:linear-gradient(135deg,#0B1E46,#1757D8);color:#fff;border-radius:18px;padding:18px}
 .promo p{color:#C9DDFF;font-size:13px;margin:4px 0 12px}
-.promo .btn{background:#fff;color:var(--navy)}
+.promo .btn{background:#fff;color:var(--btn-ink);border-color:#fff}
 table{width:100%;border-collapse:collapse;font-size:14px} th,td{padding:10px 6px;border-bottom:1px solid var(--line);text-align:left}
 .st{font-size:11px;padding:3px 8px;border-radius:999px}.ok{background:#E6F7EF;color:#157347}.bad{background:#FDEAEA;color:#C23434}.warn{background:#FFF4E0;color:#B36B00}
 .err{display:none;background:#FDEAEA;color:#C23434;border-radius:10px;padding:10px 12px;font-size:13px;margin:12px 0 0}
 .err.on{display:block}
 .toast{display:none;position:fixed;bottom:16px;right:16px;background:var(--navy);color:#fff;padding:12px 16px;border-radius:12px;font-weight:600}
-@media(max-width:900px){.hero,.hero-card,.grid,.products,.stats,.testimonials,.sim-card,.filtros{grid-template-columns:1fr} nav{display:flex;flex-wrap:wrap}}
+@media(max-width:900px){
+  .hero,.hero-card,.grid,.products,.stats,.testimonials,.sim-card,.filtros{grid-template-columns:1fr}
+  .proto{flex-direction:column;gap:4px}
+  .topnav,header.app{flex-direction:column;align-items:stretch;padding:14px 16px}
+  .topnav nav,header.app nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
+  .topnav nav button,header.app nav button,.topnav .cta{width:100%;margin:0;min-height:44px}
+  .hero{padding:32px 16px 24px}
+  .hero h1{font-size:32px}
+  .wrap,.stats,.products,.section-head,.testimonials,.sim,footer.site{padding-left:16px;padding-right:16px}
+  .row .btn,.row .chip{flex:1 1 140px}
+}
+@media(max-width:420px){
+  .topnav nav,header.app nav{grid-template-columns:1fr}
+}
