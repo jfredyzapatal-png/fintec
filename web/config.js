@@ -20,6 +20,6 @@ window.FINTEC_CONFIG = {
      API local puedes bajarlo a 10000 sin problema. */
   TIMEOUT_MS: 75000,
 
-  /* Minutos de inactividad antes del cierre automatico de sesion (RNF-01). */
-  INACTIVIDAD_MIN: 10
+  /* Minutos de vida de la sesion desde el ingreso. Al cumplirse, se cierra sola. */
+  INACTIVIDAD_MIN: 30
 };

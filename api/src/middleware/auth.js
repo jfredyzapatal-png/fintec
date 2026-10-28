@@ -1,7 +1,7 @@
 /* ============================================================
    Autenticacion por JWT.
-   El token lleva {doc, rol, cuenta} y caduca a los 10 minutos
-   (RNF-01: cierre de sesion por inactividad). En cada peticion se
+   El token lleva {doc, rol, cuenta} y caduca a los 30 minutos
+   de haber entrado. En cada peticion se
    relee el usuario de la base: asi un bloqueo hecho por el admin
    surte efecto de inmediato sobre una sesion ya abierta (RN-07),
    sin esperar a que el token expire.
@@ -37,7 +37,7 @@ export async function requiereAuth(req, _res, next) {
       payload = jwt.verify(token, config.jwtSecret);
     } catch (e) {
       const msg = e.name === 'TokenExpiredError'
-        ? 'Sesión cerrada por inactividad. Vuelve a ingresar.'
+        ? 'La sesión caducó a los 30 minutos. Vuelve a ingresar.'
         : 'Sesión no válida.';
       throw noAutenticado(msg);
     }

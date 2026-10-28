@@ -9,8 +9,8 @@ export const config = {
   port: Number(process.env.PORT || 4000),
   databaseUrl: process.env.DATABASE_URL,
   jwtSecret: process.env.JWT_SECRET,
-  // RNF-01: la sesion caduca a los 10 minutos de emitida
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '10m',
+  // La sesion caduca a los 30 minutos de emitida
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '30m',
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS || 10),
   entorno: process.env.NODE_ENV || 'development',
 };

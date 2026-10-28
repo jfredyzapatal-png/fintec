@@ -898,8 +898,8 @@ function pintarConfig() {
       tarjetaActividad(cuenta) +
       '<div class="card" style="margin-top:16px">' +
         '<h3>Sesión</h3>' +
-        '<p style="color:var(--dim);font-size:13px;margin-top:0">Si dejas de usar la app durante ' + minInact +
-          ' minutos, cerramos la sesión solos.</p>' +
+        '<p style="color:var(--dim);font-size:13px;margin-top:0">La sesión caduca a los ' + minInact +
+          ' minutos de haber entrado. Al cumplirse ese tiempo cerramos la sesión solos.</p>' +
         '<div class="row"><button class="btn ghost" onclick="salir()">Cerrar sesión ahora</button></div>' +
       '</div>';
   }).catch(e => { if (!sesionVencida(e)) fallo('b-config', 'Configuración', e, 'u-config'); });
@@ -1414,23 +1414,54 @@ function go(id) {
      esqueleto y el mensaje "Cargando datos..." mientras llega la API. */
   if (PINTORES[id]) PINTORES[id]();
   scrollTo(0, 0);
-  if (sesion) reiniciarInactividad();
+  if (sesion) programarCaducidad();
 }
 
-/* ---------- RNF-01 cierre automático por inactividad (10 min) ---------- */
-const INACTIVIDAD_MS = ((window.FINTEC_CONFIG && window.FINTEC_CONFIG.INACTIVIDAD_MIN) || 10) * 60 * 1000;
+/* La sesión dura 30 minutos desde el ingreso. Mover el mouse o cambiar
+   de pantalla no la alarga: el plazo sale del token. */
+const SESION_MS = ((window.FINTEC_CONFIG && window.FINTEC_CONFIG.INACTIVIDAD_MIN) || 30) * 60 * 1000;
+const SESION_MIN = Math.round(SESION_MS / 60000);
 let temporizadorInactividad = null;
-function reiniciarInactividad() {
+let caducaEn = 0;
+
+function expiraTokenMs() {
+  const t = API.token && API.token();
+  if (!t) return 0;
+  const cuerpo = String(t).split('.')[1];
+  if (!cuerpo) return 0;
+  try {
+    const json = JSON.parse(atob(cuerpo.replace(/-/g, '+').replace(/_/g, '/')));
+    return Number(json.exp || 0) * 1000;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function programarCaducidad() {
   clearTimeout(temporizadorInactividad);
   if (!sesion) return;
+  if (!caducaEn) {
+    const exp = expiraTokenMs();
+    caducaEn = exp > Date.now() ? exp : Date.now() + SESION_MS;
+  }
+  const falta = caducaEn - Date.now();
+  if (falta <= 0) {
+    ping('Sesión cerrada: caducó a los ' + SESION_MIN + ' minutos');
+    salir();
+    return;
+  }
   temporizadorInactividad = setTimeout(() => {
-    if (sesion) { ping('Sesión cerrada por inactividad'); salir(); }
-  }, INACTIVIDAD_MS);
+    if (!sesion) return;
+    ping('Sesión cerrada: caducó a los ' + SESION_MIN + ' minutos');
+    salir();
+  }, falta);
 }
-function detenerInactividad() { clearTimeout(temporizadorInactividad); temporizadorInactividad = null; }
-['click', 'keydown', 'scroll', 'mousemove', 'touchstart'].forEach(ev =>
-  document.addEventListener(ev, () => { if (sesion) reiniciarInactividad(); }, { passive: true })
-);
+function reiniciarInactividad() { programarCaducidad(); }
+function detenerInactividad() {
+  clearTimeout(temporizadorInactividad);
+  temporizadorInactividad = null;
+  caducaEn = 0;
+}
 
 /* Tasas mensuales por tipo de credito (prototipo academico, no son ofertas reales).
    Los rangos van de 1,5% a 2,5% mensual para quedarse dentro de valores de mercado

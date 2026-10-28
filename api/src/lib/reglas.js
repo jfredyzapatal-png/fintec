@@ -10,7 +10,7 @@ export const TOPE_DIARIO_DEF = 5000000;
 export const TOPE_MENSUAL_DEF = 20000000;
 export const MAX_INTENTOS = 5;
 export const BLOQUEO_MIN = 15;
-export const INACTIVIDAD_MIN = 10;            // RNF-01, se refleja en el exp del JWT
+export const INACTIVIDAD_MIN = 30;            // caducidad de la sesion, se refleja en el exp del JWT
 export const CLAVE_MIN = 8;
 export const CONVENIOS = ['EPM', 'Universidad', 'Acueducto', 'Claro'];
 
