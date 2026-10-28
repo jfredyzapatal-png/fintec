@@ -18,6 +18,11 @@ let sesion = null;
    (saldo, cupos, bolsillos) y se refresca cada vez que se entra a una. */
 let cuenta = null;
 
+/* Cuántas alertas no leídas muestra la campanita. campanaGen descarta
+   una respuesta vieja que llegue después de marcarlas como leídas. */
+let noLeidas = 0;
+let campanaGen = 0;
+
 const CONVENIOS = ['EPM', 'Universidad', 'Acueducto', 'Claro'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -67,11 +72,54 @@ function normMov(m) {
   };
 }
 function normBolsillo(b, i) {
+  const saldo = num(primero(b, ['saldo', 'valor', 'monto'], 0));
+  const meta = num(primero(b, ['meta'], 0));
   return {
     id: primero(b, ['id', '_id', 'bolsilloId'], i),
     nombre: primero(b, ['nombre'], 'Bolsillo'),
-    saldo: num(primero(b, ['saldo', 'valor', 'monto'], 0))
+    saldo: saldo,
+    meta: meta,
+    avance: meta > 0 ? Math.round((saldo / meta) * 100) : null
   };
+}
+function htmlMeta(b) {
+  if (!b.meta) {
+    return '<p class="meta-txt">Sin meta. Configúrala para ver cuánto llevas.</p>';
+  }
+  const real = b.avance == null ? Math.round((b.saldo / b.meta) * 100) : b.avance;
+  const ancho = Math.max(0, Math.min(100, real));
+  const texto = real >= 100
+    ? 'Meta cumplida · ' + real + '% · ' + fmt(b.saldo) + ' de ' + fmt(b.meta)
+    : real + '% de la meta · ' + fmt(b.saldo) + ' de ' + fmt(b.meta);
+  return '<div class="meta">' +
+    '<div class="barra" role="progressbar" aria-valuenow="' + ancho + '" aria-valuemin="0" aria-valuemax="100">' +
+      '<span style="width:' + ancho + '%"></span></div>' +
+    '<div class="meta-txt">' + esc(texto) + '</div></div>';
+}
+function pintarBadge() {
+  document.querySelectorAll('[data-badge-alertas]').forEach(b => {
+    if (noLeidas > 0) {
+      b.textContent = noLeidas > 99 ? '99+' : String(noLeidas);
+      b.classList.add('on');
+    } else {
+      b.textContent = '';
+      b.classList.remove('on');
+    }
+  });
+}
+function refrescarCampana() {
+  if (!sesion || sesion.rol !== 'usuario') return;
+  const gen = ++campanaGen;
+  API.alertas().then(al => {
+    if (gen !== campanaGen) return;
+    noLeidas = num(primero(al, ['noLeidas'], 0));
+    pintarBadge();
+  }).catch(() => {});
+}
+function limpiarCampana() {
+  campanaGen++;
+  noLeidas = 0;
+  pintarBadge();
 }
 
 /* ---------- avisos ---------- */
@@ -144,6 +192,7 @@ function salir() {
   sesion = null;
   cuenta = null;
   pendiente = null;
+  limpiarCampana();
   API.cerrarSesion();
   detenerInactividad();
   go('login');
@@ -205,7 +254,7 @@ function pintarInicio() {
             (lista.slice(0, 3).map(m => '<p>' + esc(m.id) + ' · ' + esc(m.tipo) + ' · ' + fmt(m.valor) + ' · ' + esc(m.estado) + '</p>').join('') || '<p>Sin movimientos todavía.</p>') +
           '</div></div>' +
         '<div class="grid">' +
-          (bolsillos.map(b => '<div class="card"><div style="color:var(--dim)">' + esc(b.nombre) + '</div><div class="d" style="font-size:28px">' + fmt(b.saldo) + '</div></div>').join('') ||
+          (bolsillos.map(b => '<div class="card"><div style="color:var(--dim)">' + esc(b.nombre) + '</div><div class="d" style="font-size:28px">' + fmt(b.saldo) + '</div>' + htmlMeta(b) + '</div>').join('') ||
            '<div class="card"><div style="color:var(--dim)">Sin bolsillos</div><p>Crea uno para separar plata de tus metas.</p></div>') +
           '<div class="promo"><div style="font-weight:700">¿Necesitas un crédito?</div><p>Libre inversión, vehículo o hipoteca. Desembolso al instante en tu cuenta.</p>' +
           '<button class="btn" onclick="go(\'u-creditos\')">Solicitar crédito</button></div>' +
@@ -299,26 +348,69 @@ function confirmarTransferencia() {
   });
 }
 
+function opcionesConvenio() {
+  return CONVENIOS.map(c2 => '<option>' + esc(c2) + '</option>').join('');
+}
+
 function pintarPagos() {
   cargando('b-pagos', 'Pagar');
-  API.cuentaMe().then(c => {
+  const cuentasP = API.cuentasPago().then(
+    regs => ({ regs: regs, aviso: '' }),
+    e => {
+      if (e && e.estado === 401) throw e;
+      return { regs: [], aviso: mensajeError(e) };
+    }
+  );
+  Promise.all([API.cuentaMe(), cuentasP]).then(([c, pack]) => {
     cuenta = c || {};
+    const regs = pack.regs;
+    const cuentas = comoLista(regs, ['cuentas', 'cuentasPago']).map(x => ({
+      id: primero(x, ['id'], ''),
+      alias: primero(x, ['alias', 'nombre'], 'Cuenta'),
+      convenio: primero(x, ['convenio'], ''),
+      referencia: primero(x, ['referencia'], '')
+    }));
+    const tarjeta = (x) =>
+      '<div class="card">' +
+        '<h3 style="margin-bottom:4px">' + esc(x.alias) + '</h3>' +
+        '<p style="color:var(--dim);font-size:13px;margin:0 0 8px">' + esc(x.convenio) + ' · ref. ' + esc(x.referencia) + '</p>' +
+        '<label for="pg-v' + esc(x.id) + '">Valor a pagar</label>' +
+        '<input id="pg-v' + esc(x.id) + '" inputmode="numeric" placeholder="95400" />' +
+        '<div class="row">' +
+          '<button class="btn mint" data-id="' + esc(x.id) + '" data-convenio="' + esc(x.convenio) + '" data-ref="' + esc(x.referencia) + '" onclick="pagarRegistrada(this)">Pagar</button>' +
+          '<button class="btn ghost" data-id="' + esc(x.id) + '" data-alias="' + esc(x.alias) + '" onclick="quitarCuentaPago(this)">Quitar</button>' +
+        '</div></div>';
+
     el('b-pagos').innerHTML =
       '<h2 class="d">Pagar</h2>' +
-      '<div class="card">' +
-        '<div style="color:var(--dim);font-size:13px">Disponible: <strong>' + fmt(primero(cuenta, ['disponible', 'saldo'], 0)) + '</strong></div>' +
-        '<label for="pg-convenio">Convenio</label><select id="pg-convenio" name="convenio">' + CONVENIOS.map(c2 => '<option>' + c2 + '</option>').join('') + '</select>' +
-        '<label for="pg-ref">Referencia</label><input id="pg-ref" name="referencia" value="10993821" />' +
+      '<p style="color:var(--dim)">Disponible: <strong>' + fmt(primero(cuenta, ['disponible', 'saldo'], 0)) + '</strong>. ' +
+        'Registra el convenio una vez y después pagas sin volver a escribir el número.</p>' +
+      (pack.aviso ? '<p class="err on">' + esc(pack.aviso) + '</p>' : '') +
+      '<p id="pg-error" class="err" role="alert" aria-live="polite"></p>' +
+      '<h3 class="d" style="font-size:20px">Cuentas registradas</h3>' +
+      '<div class="grid">' +
+        (cuentas.length ? cuentas.map(tarjeta).join('') :
+          '<div class="card"><p style="margin:0">Todavía no tienes cuentas. Registra EPM, la universidad u otro convenio.</p></div>') +
+      '</div>' +
+      '<div class="card" style="margin-top:16px">' +
+        '<h3>Registrar cuenta</h3>' +
+        '<label for="pg-alias">Nombre</label><input id="pg-alias" name="alias" placeholder="Ej. EPM de la casa" />' +
+        '<label for="pg-convenio-reg">Convenio</label><select id="pg-convenio-reg" name="convenio">' + opcionesConvenio() + '</select>' +
+        '<label for="pg-ref-reg">Número o referencia</label><input id="pg-ref-reg" name="referencia" placeholder="10993821" />' +
+        '<div class="row"><button class="btn mint" onclick="registrarCuentaPago()">Guardar cuenta</button></div>' +
+      '</div>' +
+      '<div class="card" style="margin-top:16px">' +
+        '<h3>Pagar sin registrar</h3>' +
+        '<p style="color:var(--dim);font-size:13px;margin-top:0">Para un convenio que no vas a repetir.</p>' +
+        '<label for="pg-convenio">Convenio</label><select id="pg-convenio" name="convenio">' + opcionesConvenio() + '</select>' +
+        '<label for="pg-ref">Referencia</label><input id="pg-ref" name="referencia" placeholder="Número del recibo" />' +
         '<label for="pg-valor">Valor</label><input id="pg-valor" name="valor" inputmode="numeric" placeholder="95400" />' +
-        '<p id="pg-error" class="err" role="alert" aria-live="polite"></p>' +
-        '<div class="row"><button class="btn mint" onclick="pagar()">Confirmar pago</button></div>' +
+        '<div class="row"><button class="btn ghost" onclick="pagar()">Pagar esta vez</button></div>' +
       '</div>';
   }).catch(e => { if (!sesionVencida(e)) fallo('b-pagos', 'Pagar', e, 'u-pagos'); });
 }
 
-function pagar() {
-  const convenio = val('pg-convenio'), ref = val('pg-ref');
-  const valor = num(val('pg-valor'));
+function pagarCon(convenio, ref, valor) {
   if (!ref) { err('pg-error', 'Escribe la referencia del convenio.'); return; }
   if (!valor || valor <= 0) { err('pg-error', 'Escribe un valor mayor que cero.'); return; }
   err('pg-error', '');
@@ -329,6 +421,34 @@ function pagar() {
   }).catch(e => { if (!sesionVencida(e)) err('pg-error', mensajeError(e)); });
 }
 
+function pagar() {
+  pagarCon(val('pg-convenio'), val('pg-ref'), num(val('pg-valor')));
+}
+
+function pagarRegistrada(btn) {
+  pagarCon(btn.dataset.convenio, btn.dataset.ref, num(val('pg-v' + btn.dataset.id)));
+}
+
+function registrarCuentaPago() {
+  const alias = val('pg-alias');
+  const convenio = val('pg-convenio-reg');
+  const referencia = val('pg-ref-reg');
+  if (!alias) { err('pg-error', 'Ponle un nombre a la cuenta.'); return; }
+  if (!referencia) { err('pg-error', 'Escribe el número o la referencia.'); return; }
+  err('pg-error', '');
+  API.registrarCuentaPago(alias, convenio, referencia)
+    .then(() => { ping('Cuenta "' + alias + '" registrada'); pintarPagos(); })
+    .catch(e => { if (!sesionVencida(e)) err('pg-error', mensajeError(e)); });
+}
+
+function quitarCuentaPago(btn) {
+  if (!confirm('¿Quitar la cuenta "' + (btn.dataset.alias || '') + '"?')) return;
+  err('pg-error', '');
+  API.eliminarCuentaPago(btn.dataset.id)
+    .then(() => { ping('Cuenta quitada'); pintarPagos(); })
+    .catch(e => { if (!sesionVencida(e)) err('pg-error', mensajeError(e)); });
+}
+
 function pintarBolsillos() {
   cargando('b-bolsillos', 'Bolsillos');
   API.cuentaMe().then(c => {
@@ -337,16 +457,25 @@ function pintarBolsillos() {
     const bolsillos = comoLista(primero(cuenta, ['bolsillos'], []), ['bolsillos']).map(normBolsillo);
     el('b-bolsillos').innerHTML =
       '<h2 class="d">Bolsillos</h2>' +
-      '<p style="color:var(--dim)">Disponible para mover: <strong>' + fmt(disponible) + '</strong></p>' +
+      '<p style="color:var(--dim)">Disponible para mover: <strong>' + fmt(disponible) + '</strong>. ' +
+        'Al crear uno puedes ponerle una meta: el porcentaje sube cada vez que aportas.</p>' +
       '<p id="bl-error" class="err" role="alert" aria-live="polite"></p>' +
       '<div class="grid">' +
         bolsillos.map((b, i) =>
-          '<div class="card"><h3>' + esc(b.nombre) + '</h3><div class="d big" style="font-size:32px">' + fmt(b.saldo) + '</div>' +
-          '<label for="bl-m' + i + '">Monto</label><input id="bl-m' + i + '" inputmode="numeric" placeholder="100000" />' +
+          '<div class="card"><h3>' + esc(b.nombre) + '</h3>' +
+          '<div class="d big" style="font-size:32px">' + fmt(b.saldo) + '</div>' +
+          htmlMeta(b) +
+          '<label for="bl-meta' + i + '">Meta</label>' +
+          '<input id="bl-meta' + i + '" inputmode="numeric" value="' + (b.meta || '') + '" placeholder="1000000" />' +
+          '<div class="row"><button class="chip" data-id="' + esc(b.id) + '" data-i="' + i + '" onclick="guardarMeta(this.dataset.id,this.dataset.i)">Guardar meta</button></div>' +
+          '<label for="bl-m' + i + '">Monto a mover</label><input id="bl-m' + i + '" inputmode="numeric" placeholder="100000" />' +
           '<div class="row"><button class="chip" data-id="' + esc(b.id) + '" data-i="' + i + '" onclick="aportar(this.dataset.id,this.dataset.i)">Aportar</button>' +
           '<button class="chip" data-id="' + esc(b.id) + '" data-i="' + i + '" onclick="retirar(this.dataset.id,this.dataset.i)">A disponible</button></div></div>').join('') +
-        '<div class="card"><h3>Nuevo</h3><label for="bl-nombre">Nombre del bolsillo</label>' +
+        '<div class="card"><h3>Nuevo bolsillo</h3>' +
+        '<label for="bl-nombre">Nombre</label>' +
         '<input id="bl-nombre" name="bolsillo" placeholder="Ej. Estudio" />' +
+        '<label for="bl-meta-nueva">Meta (opcional)</label>' +
+        '<input id="bl-meta-nueva" inputmode="numeric" placeholder="1000000" />' +
         '<button class="btn mint" style="margin-top:12px" onclick="crearBolsillo()">Crear</button></div>' +
       '</div>';
   }).catch(e => { if (!sesionVencida(e)) fallo('b-bolsillos', 'Bolsillos', e, 'u-bolsillos'); });
@@ -368,12 +497,36 @@ function retirar(id, i) {
     .then(() => { ping('Pasaste ' + fmt(monto) + ' a tu disponible'); pintarBolsillos(); })
     .catch(e => { if (!sesionVencida(e)) err('bl-error', mensajeError(e)); });
 }
+function leerMeta(idCampo) {
+  const raw = val(idCampo);
+  if (!raw) return { meta: 0 };
+  if (!/^\d+$/.test(raw)) return { error: 'La meta debe ser un número entero. Déjala vacía para quitarla.' };
+  return { meta: num(raw) };
+}
 function crearBolsillo() {
   const nombre = val('bl-nombre');
+  const meta = leerMeta('bl-meta-nueva');
   if (!nombre) { err('bl-error', 'Ponle un nombre al bolsillo.'); return; }
+  if (meta.error) { err('bl-error', meta.error); return; }
   err('bl-error', '');
-  API.crearBolsillo(nombre)
-    .then(() => { ping('Bolsillo "' + nombre + '" creado'); pintarBolsillos(); })
+  API.crearBolsillo(nombre, meta.meta)
+    .then(() => {
+      ping(meta.meta ? 'Bolsillo "' + nombre + '" creado con meta de ' + fmt(meta.meta) : 'Bolsillo "' + nombre + '" creado');
+      refrescarCampana();
+      pintarBolsillos();
+    })
+    .catch(e => { if (!sesionVencida(e)) err('bl-error', mensajeError(e)); });
+}
+function guardarMeta(id, i) {
+  const meta = leerMeta('bl-meta' + i);
+  if (meta.error) { err('bl-error', meta.error); return; }
+  err('bl-error', '');
+  API.configurarMeta(id, meta.meta)
+    .then(() => {
+      ping(meta.meta ? 'Meta actualizada a ' + fmt(meta.meta) : 'Meta quitada');
+      refrescarCampana();
+      pintarBolsillos();
+    })
     .catch(e => { if (!sesionVencida(e)) err('bl-error', mensajeError(e)); });
 }
 
@@ -530,42 +683,139 @@ function pagarTotalCredito(id, total) {
     .catch(e => { if (!sesionVencida(e)) err('cr-error', mensajeError(e)); });
 }
 
+/* Entró o salió plata de la cuenta. Un bolsillo no sale del patrimonio:
+   solo se mueve entre el disponible y la meta, así que no cuenta como flujo. */
+function direccionMov(m, propia) {
+  if (!propia || !m) return '';
+  if (m.tipo === 'Bolsillo') return 'bolsillo';
+  if (m.origen === propia) return 'salida';
+  if (m.destino === propia) return 'entrada';
+  return '';
+}
+function etiquetaFlujo(m, propia) {
+  const d = direccionMov(m, propia);
+  if (d === 'entrada') return '<span class="st ok">Entró</span>';
+  if (d === 'salida') return '<span class="st bad">Salió</span>';
+  if (d === 'bolsillo') return '<span class="st warn">Bolsillo</span>';
+  return '—';
+}
+
 function filaMov(m, propia) {
   const clase = m.estado === 'Completada' ? 'ok' : m.estado === 'Rechazada' ? 'bad' : 'warn';
-  const signo = propia && m.origen === propia && m.tipo !== 'Bolsillo' ? '−' : '';
-  return '<tr><td>' + esc(m.id) + '</td><td>' + fechaCorta(m.ts) + '</td><td>' + esc(m.tipo) + '</td><td>' + esc(m.origen) +
-    '</td><td>' + esc(m.destino) + '</td><td>' + signo + fmt(m.valor) + '</td><td><span class="st ' + clase + '">' + esc(m.estado) + '</span></td></tr>';
+  const dir = propia ? direccionMov(m, propia) : '';
+  const signo = dir === 'salida' ? '−' : dir === 'entrada' ? '+' : '';
+  const flujo = propia ? '<td>' + etiquetaFlujo(m, propia) + '</td>' : '';
+  return '<tr><td>' + esc(m.id) + '</td><td>' + fechaCorta(m.ts) + '</td><td>' + esc(m.tipo) + '</td>' + flujo +
+    '<td>' + esc(m.origen) + '</td><td>' + esc(m.destino) + '</td><td>' + signo + fmt(m.valor) +
+    '</td><td><span class="st ' + clase + '">' + esc(m.estado) + '</span></td></tr>';
 }
 
 function pintarMovimientos() {
+  if (!window.movFiltro) window.movFiltro = { desde: '', hasta: '', flujo: '' };
+  const f = window.movFiltro;
   cargando('b-movimientos', 'Movimientos');
-  API.movimientos().then(r => {
-    const lista = comoLista(r, ['movimientos']).map(normMov);
+  Promise.all([
+    API.cuentaMe().catch(e => { if (e && e.estado === 401) throw e; return cuenta; }),
+    API.movimientos(f.desde, f.hasta)
+  ]).then(([c, r]) => {
+    if (c) cuenta = c;
+    const propia = primero(cuenta || {}, ['cuenta'], sesion && sesion.cuenta);
+    const todas = comoLista(r, ['movimientos']).map(normMov);
+    const entradas = todas.filter(m => direccionMov(m, propia) === 'entrada').length;
+    const salidas = todas.filter(m => direccionMov(m, propia) === 'salida').length;
+    const lista = f.flujo ? todas.filter(m => direccionMov(m, propia) === f.flujo) : todas;
+    const chip = (valor, etiqueta) =>
+      '<button type="button" class="chip' + (f.flujo === valor ? ' on' : '') + '" onclick="filtrarFlujo(\'' + valor + '\')">' + etiqueta + '</button>';
+
     el('b-movimientos').innerHTML =
       '<h2 class="d">Movimientos</h2>' +
-      '<div class="card"><table><thead><tr><th>ID</th><th>Fecha</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Valor</th><th>Estado</th></tr></thead><tbody>' +
-      (lista.map(m => filaMov(m, primero(cuenta || {}, ['cuenta'], sesion && sesion.cuenta))).join('') || '<tr><td colspan="7">Todavía no tienes movimientos.</td></tr>') +
+      '<div class="card">' +
+        '<div class="row" style="margin-top:0">' +
+          chip('', 'Todos') + chip('entrada', 'Entró plata') + chip('salida', 'Salió plata') +
+        '</div>' +
+        '<div class="filtros">' +
+          '<div><label for="mv-desde">Desde</label><input id="mv-desde" type="date" value="' + esc(f.desde) + '" /></div>' +
+          '<div><label for="mv-hasta">Hasta</label><input id="mv-hasta" type="date" value="' + esc(f.hasta) + '" /></div>' +
+        '</div>' +
+        '<div class="row">' +
+          '<button class="btn mint" onclick="aplicarFiltroFechas()">Filtrar fechas</button>' +
+          '<button class="btn ghost" onclick="limpiarFiltroUsuario()">Limpiar</button>' +
+        '</div>' +
+        '<p style="color:var(--dim);font-size:13px;margin-bottom:0">' + todas.length + ' en el rango · ' +
+          entradas + ' entraron · ' + salidas + ' salieron. Los bolsillos se ven en Todos.</p>' +
+      '</div>' +
+      '<div class="card" style="margin-top:12px"><table><thead><tr><th>ID</th><th>Fecha</th><th>Tipo</th><th>Flujo</th><th>Origen</th><th>Destino</th><th>Valor</th><th>Estado</th></tr></thead><tbody>' +
+      (lista.map(m => filaMov(m, propia)).join('') || '<tr><td colspan="8">Ningún movimiento coincide con el filtro.</td></tr>') +
       '</tbody></table></div>';
   }).catch(e => { if (!sesionVencida(e)) fallo('b-movimientos', 'Movimientos', e, 'u-movimientos'); });
 }
 
+function filtrarFlujo(flujo) {
+  const actual = window.movFiltro || { desde: '', hasta: '', flujo: '' };
+  const desde = el('mv-desde') ? val('mv-desde') : actual.desde;
+  const hasta = el('mv-hasta') ? val('mv-hasta') : actual.hasta;
+  if ((desde && !hasta) || (!desde && hasta)) {
+    ping('Elige las dos fechas, o déjalas vacías para ver todo.');
+    return;
+  }
+  if (desde && hasta && new Date(desde) > new Date(hasta)) {
+    ping('La fecha "Desde" debe ser menor o igual a "Hasta"');
+    return;
+  }
+  window.movFiltro = { desde: desde, hasta: hasta, flujo: flujo };
+  pintarMovimientos();
+}
+function aplicarFiltroFechas() {
+  filtrarFlujo((window.movFiltro && window.movFiltro.flujo) || '');
+}
+function limpiarFiltroUsuario() {
+  window.movFiltro = { desde: '', hasta: '', flujo: '' };
+  pintarMovimientos();
+}
+
 function pintarAlertas() {
   cargando('b-alertas', 'Alertas');
-  Promise.all([API.alertas(), API.cuentaMe()]).then(([al, c]) => {
-    cuenta = c || {};
+  API.alertas().then(al => {
     const alertas = comoLista(al, ['alertas']);
-    const topeDiario = num(primero(cuenta, ['topeDiario'], 0));
-    const topeMensual = num(primero(cuenta, ['topeMensual'], 0));
-    /* Lo enviado se deduce de la diferencia entre el tope y el cupo
-       restante que informa el servidor. */
-    const enviadoDia = Math.max(0, topeDiario - num(primero(cuenta, ['cupoDiario'], 0)));
-    const enviadoMes = Math.max(0, topeMensual - num(primero(cuenta, ['cupoMensual'], 0)));
-
+    const pendientes = num(primero(al, ['noLeidas'], alertas.filter(a => a.leida === false).length));
     el('b-alertas').innerHTML =
       '<h2 class="d">Alertas</h2>' +
-      (alertas.map(a => '<div class="card" style="margin-bottom:10px"><p>' +
-          esc(primero(a, ['texto', 'mensaje'], '')) + ' · ' + fechaCorta(primero(a, ['ts', 'fecha'], null)) + '</p></div>').join('') ||
-       '<div class="card"><p>Sin alertas por ahora.</p></div>') +
+      '<p style="color:var(--dim)">' +
+        (pendientes ? pendientes + ' sin leer. Al abrirlas se marcan como vistas.' : 'No tienes alertas nuevas.') +
+        ' Los topes y la contraseña están en Configuración.</p>' +
+      (alertas.map(a => '<div class="card alerta' + (a.leida === false ? ' nueva' : '') + '">' +
+          (a.leida === false ? '<span class="st ok">Nueva</span> ' : '') +
+          '<p style="margin:6px 0 0">' + esc(primero(a, ['texto', 'mensaje'], '')) +
+          ' · ' + fechaCorta(primero(a, ['ts', 'fecha'], null)) + '</p></div>').join('') ||
+       '<div class="card"><p>Sin alertas por ahora.</p></div>');
+    API.marcarAlertasLeidas().then(() => limpiarCampana()).catch(() => {});
+  }).catch(e => { if (!sesionVencida(e)) fallo('b-alertas', 'Alertas', e, 'u-notificaciones'); });
+}
+
+function pintarConfig() {
+  cargando('b-config', 'Configuración');
+  API.cuentaMe().then(c => {
+    cuenta = c || {};
+    const topeDiario = num(primero(cuenta, ['topeDiario'], 0));
+    const topeMensual = num(primero(cuenta, ['topeMensual'], 0));
+    const enviadoDia = Math.max(0, topeDiario - num(primero(cuenta, ['cupoDiario'], 0)));
+    const enviadoMes = Math.max(0, topeMensual - num(primero(cuenta, ['cupoMensual'], 0)));
+    const correo = primero(cuenta, ['correo'], '');
+    const minInact = (window.FINTEC_CONFIG && window.FINTEC_CONFIG.INACTIVIDAD_MIN) || 10;
+    const nombre = primero(cuenta, ['nombre'], sesion && sesion.nombre);
+    const doc = primero(cuenta, ['doc'], sesion && sesion.doc);
+    const tipo = primero(cuenta, ['tipo'], '');
+    const nro = primero(cuenta, ['cuenta'], sesion && sesion.cuenta);
+
+    el('b-config').innerHTML =
+      '<h2 class="d">Configuración</h2>' +
+      '<div class="card">' +
+        '<h3>Tu cuenta</h3>' +
+        '<p style="margin:0"><strong>' + esc(nombre) + '</strong></p>' +
+        '<p style="color:var(--dim);font-size:13px;margin:6px 0 0">' +
+          esc(tipo) + ' ' + esc(doc) + ' · cuenta ' + esc(nro) +
+          (correo ? ' · ' + esc(correo) : ' · sin correo registrado') + '</p>' +
+      '</div>' +
       /* RF-04 — cada usuario define sus propios topes de transferencia */
       '<div class="card" style="margin-top:16px">' +
         '<h3>Topes de transferencia</h3>' +
@@ -581,7 +831,7 @@ function pintarAlertas() {
       /* RF-06 CA-06.2 — cambio de contraseña con notificación */
       '<div class="card" style="margin-top:16px">' +
         '<h3>Cambiar contraseña</h3>' +
-        '<p style="color:var(--dim);font-size:13px;margin:0 0 6px">Te llegará una notificación con la fecha y hora del cambio.</p>' +
+        '<p style="color:var(--dim);font-size:13px;margin:0 0 6px">Te llegará una alerta con la fecha y hora del cambio.</p>' +
         '<label for="cp-actual">Contraseña actual</label>' +
         '<input id="cp-actual" type="password" autocomplete="current-password" />' +
         '<label for="cp-nueva">Nueva contraseña</label>' +
@@ -590,8 +840,25 @@ function pintarAlertas() {
         '<input id="cp-confirma" type="password" autocomplete="new-password" />' +
         '<p id="cp-error" class="err" role="alert" aria-live="polite"></p>' +
         '<div class="row"><button class="btn mint" onclick="cambiarPassword()">Guardar</button></div>' +
+      '</div>' +
+      '<div class="card" style="margin-top:16px">' +
+        '<h3>Sesión</h3>' +
+        '<p style="color:var(--dim);font-size:13px;margin-top:0">Si dejas de usar la app durante ' + minInact +
+          ' minutos, cerramos la sesión solos.</p>' +
+        '<div class="row"><button class="btn ghost" onclick="salir()">Cerrar sesión ahora</button></div>' +
+      '</div>' +
+      /* Queda a la vista para el cierre. No se activa en esta entrega. */
+      '<div class="card" style="margin-top:16px">' +
+        '<h3>Doble autenticación</h3>' +
+        '<p style="color:var(--dim);font-size:13px;margin-top:0">Además de la contraseña, al entrar desde un equipo nuevo ' +
+          'FINTEC pedirá un código enviado a tu correo. La dejamos para el cierre del proyecto.</p>' +
+        '<p style="margin:0 0 8px"><span class="st warn">Pendiente</span></p>' +
+        (correo
+          ? '<p style="color:var(--dim);font-size:13px;margin:0">El código iría a ' + esc(correo) + '.</p>'
+          : '<p style="color:var(--dim);font-size:13px;margin:0">Esta cuenta no tiene correo. Sin correo no se puede activar.</p>') +
+        '<div class="row"><button class="btn ghost" type="button" disabled>Activar más adelante</button></div>' +
       '</div>';
-  }).catch(e => { if (!sesionVencida(e)) fallo('b-alertas', 'Alertas', e, 'u-notificaciones'); });
+  }).catch(e => { if (!sesionVencida(e)) fallo('b-config', 'Configuración', e, 'u-config'); });
 }
 
 function guardarTopes() {
@@ -603,7 +870,7 @@ function guardarTopes() {
   if (diario > mensual) { err('tp-error', 'El tope diario no puede superar al mensual.'); return; }
   err('tp-error', '');
   API.guardarTopes(diario, mensual)
-    .then(() => { ping('Topes actualizados'); pintarAlertas(); })
+    .then(() => { ping('Topes actualizados'); refrescarCampana(); pintarConfig(); })
     .catch(e => { if (!sesionVencida(e)) err('tp-error', mensajeError(e)); });
 }
 
@@ -616,7 +883,7 @@ function cambiarPassword() {
   err('cp-error', '');
   /* Que la contraseña actual coincida lo verifica el servidor. */
   API.cambiarPassword(actual, nueva)
-    .then(() => { ping('Contraseña actualizada'); pintarAlertas(); })
+    .then(() => { ping('Contraseña actualizada'); refrescarCampana(); pintarConfig(); })
     .catch(e => { if (!sesionVencida(e)) err('cp-error', mensajeError(e)); });
 }
 
@@ -973,6 +1240,13 @@ function pintarCReportes() {
 }
 
 /* ---------- navegacion ---------- */
+const CAMPANA =
+  '<button data-g="u-notificaciones" class="campana" aria-label="Alertas">' +
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+      '<path d="M6 9a6 6 0 1 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9z" stroke="currentColor" stroke-width="1.8"/>' +
+      '<path d="M10 20a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' +
+    '</svg>Alertas<span class="badge" data-badge-alertas></span></button>';
+
 const H = '<div class="d">FINTEC</div>' +
     '<nav>' +
       '<button data-g="u-inicio">Inicio</button>' +
@@ -981,7 +1255,8 @@ const H = '<div class="d">FINTEC</div>' +
       '<button data-g="u-pagos">Pagar</button>' +
       '<button data-g="u-creditos">Crédito</button>' +
       '<button data-g="u-movimientos">Movimientos</button>' +
-      '<button data-g="u-notificaciones">Alertas</button>' +
+      CAMPANA +
+      '<button data-g="u-config">Configuración</button>' +
       '<button data-g="u-reportes">Exportar</button>' +
       '<button data-g="salir">Salir</button>' +
     '</nav>';
@@ -990,6 +1265,7 @@ const PINTORES = {
   'u-inicio': pintarInicio, 'u-transferir': pintarTransferir, 'u-bolsillos': pintarBolsillos,
   'u-pagos': pintarPagos, 'u-creditos': pintarCreditos,
   'u-movimientos': pintarMovimientos, 'u-notificaciones': pintarAlertas,
+  'u-config': pintarConfig,
   'u-reportes': pintarReportes, 'a-panel': pintarAdmin, 'a-movimientos': pintarAdminMovimientos,
   'c-panel': pintarContable, 'c-reportes': pintarCReportes
 };
@@ -1000,19 +1276,22 @@ const ROL_PANTALLA = {
   'u-inicio': 'usuario', 'u-transferir': 'usuario', 'u-bolsillos': 'usuario',
   'u-pagos': 'usuario', 'u-creditos': 'usuario',
   'u-movimientos': 'usuario', 'u-notificaciones': 'usuario',
+  'u-config': 'usuario',
   'u-reportes': 'usuario',
   'a-panel': 'admin', 'a-movimientos': 'admin',
   'c-panel': 'contable', 'c-reportes': 'contable'
 };
 
 function cabecera(id) {
-  document.querySelectorAll('#u-inicio header, #u-transferir header, #u-bolsillos header, #u-pagos header, #u-creditos header, #u-movimientos header, #u-notificaciones header, #u-reportes header').forEach(h => {
+  document.querySelectorAll('#u-inicio header, #u-transferir header, #u-bolsillos header, #u-pagos header, #u-creditos header, #u-movimientos header, #u-notificaciones header, #u-config header, #u-reportes header').forEach(h => {
     h.innerHTML = H;
     h.querySelectorAll('[data-g]').forEach(b => {
       if (b.dataset.g === id) b.classList.add('on');
       b.onclick = () => b.dataset.g === 'salir' ? salir() : go(b.dataset.g);
     });
   });
+  pintarBadge();
+  if (sesion && sesion.rol === 'usuario' && id !== 'u-notificaciones') refrescarCampana();
 }
 
 function go(id) {

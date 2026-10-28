@@ -56,6 +56,13 @@ rutasCuenta.get('/alertas', requierePermiso('alertas:propias'), async (req, res,
   } catch (e) { next(e); }
 });
 
+/* POST /api/alertas/leidas */
+rutasCuenta.post('/alertas/leidas', requierePermiso('alertas:propias'), async (req, res, next) => {
+  try {
+    res.json(await cuenta.marcarAlertasLeidas(req.usuario));
+  } catch (e) { next(e); }
+});
+
 /* ---------- dinero ---------- */
 
 /* POST /api/transferencias */
@@ -76,6 +83,29 @@ rutasCuenta.post('/pagos', requierePermiso('pago:crear'), async (req, res, next)
   } catch (e) { next(e); }
 });
 
+/* GET /api/cuentas-pago — convenios que el usuario dejó guardados */
+rutasCuenta.get('/cuentas-pago', requierePermiso('cuenta:leer'), async (req, res, next) => {
+  try {
+    res.json(await pagos.listarCuentas(req.usuario));
+  } catch (e) { next(e); }
+});
+
+/* POST /api/cuentas-pago */
+rutasCuenta.post('/cuentas-pago', requierePermiso('pago:crear'), async (req, res, next) => {
+  try {
+    const { alias, convenio, referencia } = req.body || {};
+    const r = await pagos.registrarCuenta(req.usuario, { alias, convenio, referencia });
+    res.status(201).json(r);
+  } catch (e) { next(e); }
+});
+
+/* DELETE /api/cuentas-pago/:id */
+rutasCuenta.delete('/cuentas-pago/:id', requierePermiso('pago:crear'), async (req, res, next) => {
+  try {
+    res.json(await pagos.eliminarCuenta(req.usuario, req.params.id));
+  } catch (e) { next(e); }
+});
+
 /* ---------- bolsillos ---------- */
 
 rutasCuenta.get('/bolsillos', requierePermiso('cuenta:leer'), async (req, res, next) => {
@@ -87,8 +117,16 @@ rutasCuenta.get('/bolsillos', requierePermiso('cuenta:leer'), async (req, res, n
 /* POST /api/bolsillos */
 rutasCuenta.post('/bolsillos', requierePermiso('bolsillo:crear'), async (req, res, next) => {
   try {
-    const r = await bolsillos.crear(req.usuario, { nombre: req.body?.nombre });
+    const r = await bolsillos.crear(req.usuario, { nombre: req.body?.nombre, meta: req.body?.meta });
     res.status(201).json(r);
+  } catch (e) { next(e); }
+});
+
+/* PUT /api/bolsillos/:id/meta */
+rutasCuenta.put('/bolsillos/:id/meta', requierePermiso('bolsillo:crear'), async (req, res, next) => {
+  try {
+    const r = await bolsillos.configurarMeta(req.usuario, req.params.id, { meta: req.body?.meta });
+    res.json(r);
   } catch (e) { next(e); }
 });
 

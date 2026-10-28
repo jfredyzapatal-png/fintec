@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  normalizarMonto, validarMonto, cupoDisponible, cupoDiario, cupoMensual,
+  normalizarMonto, validarMonto, validarMeta, cupoDisponible, cupoDiario, cupoMensual,
   validarTopes, evaluarTransferencia, validarRegistro, validarCambioClave,
   edadEn, siguienteIntento, estaBloqueadoPorIntentos, rangoFechas, iso,
   nuevoNumeroCuenta, fechaCorta, fmt,
@@ -47,6 +47,15 @@ test('validarMonto rechaza cero, negativo y basura (CP-04, CP-05)', () => {
   assert.match(validarMonto('abc'), /mayor que cero/i);
   assert.equal(validarMonto(100000), null);
   assert.equal(validarMonto('180000'), null);
+});
+
+test('validarMeta acepta vacio como sin meta y rechaza negativos', () => {
+  assert.deepEqual(validarMeta(''), { meta: 0 });
+  assert.deepEqual(validarMeta(undefined), { meta: 0 });
+  assert.deepEqual(validarMeta(1000000), { meta: 1000000 });
+  assert.deepEqual(validarMeta('1000000.6'), { meta: 1000001 });
+  assert.match(validarMeta(-1).error, /cero o un monto mayor/i);
+  assert.match(validarMeta('abc').error, /cero o un monto mayor/i);
 });
 
 test('fmt da formato de pesos colombianos', () => {

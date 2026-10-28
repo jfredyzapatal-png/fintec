@@ -37,6 +37,16 @@ export function validarMonto(valor) {
   return null;
 }
 
+/* Meta de un bolsillo. Vacio o cero significa "sin meta": el bolsillo
+   sigue existiendo, solo que no muestra porcentaje de avance. */
+export function validarMeta(valor) {
+  if (valor === undefined || valor === null || valor === '') return { meta: 0 };
+  const n = normalizarMonto(valor);
+  if (Number.isNaN(n) || n < 0) return { error: 'La meta debe ser cero o un monto mayor.' };
+  if (n > 1e14) return { error: 'La meta excede el máximo permitido.' };
+  return { meta: n };
+}
+
 export function fmt(n) {
   return '$' + Math.round(Number(n)).toLocaleString('es-CO');
 }

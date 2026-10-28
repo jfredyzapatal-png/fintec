@@ -65,5 +65,13 @@ export function movimientoPublico(m, codigoOriginal = null) {
 }
 
 export function bolsilloPublico(b) {
-  return { id: Number(b.id), nombre: b.nombre, saldo: Number(b.saldo) };
+  const saldo = Number(b.saldo);
+  const meta = Number(b.meta || 0);
+  return {
+    id: Number(b.id),
+    nombre: b.nombre,
+    saldo,
+    meta,
+    avance: meta > 0 ? Math.round((saldo / meta) * 100) : null,
+  };
 }

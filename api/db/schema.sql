@@ -17,6 +17,7 @@ BEGIN;
 DROP TABLE IF EXISTS alertas        CASCADE;
 DROP TABLE IF EXISTS creditos       CASCADE;
 DROP TABLE IF EXISTS movimientos    CASCADE;
+DROP TABLE IF EXISTS cuentas_pago   CASCADE;
 DROP TABLE IF EXISTS bolsillos      CASCADE;
 DROP TABLE IF EXISTS usuarios       CASCADE;
 DROP SEQUENCE IF EXISTS movimientos_codigo_seq;
@@ -74,12 +75,35 @@ CREATE TABLE bolsillos (
   nombre       TEXT NOT NULL CHECK (length(btrim(nombre)) > 0),
   saldo        NUMERIC(14,2) NOT NULL DEFAULT 0
                  CONSTRAINT bolsillos_saldo_no_negativo CHECK (saldo >= 0),
+  -- 0 = sin meta. Si es mayor, la app muestra el % del saldo frente a la meta.
+  meta         NUMERIC(14,2) NOT NULL DEFAULT 0
+                 CONSTRAINT bolsillos_meta_no_negativa CHECK (meta >= 0),
   creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE UNIQUE INDEX bolsillos_nombre_unico_por_usuario
   ON bolsillos (usuario_doc, lower(btrim(nombre)));
 CREATE INDEX bolsillos_usuario_idx ON bolsillos (usuario_doc);
+
+-- ------------------------------------------------------------
+-- cuentas_pago
+-- Convenios que el usuario deja guardados (EPM, universidad, etc.)
+-- para pagarlos despues sin volver a escribir la referencia.
+-- ------------------------------------------------------------
+CREATE TABLE cuentas_pago (
+  id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  usuario_doc  TEXT NOT NULL REFERENCES usuarios (doc) ON DELETE CASCADE,
+  alias        TEXT NOT NULL CHECK (length(btrim(alias)) > 0),
+  convenio     TEXT NOT NULL CHECK (convenio IN ('EPM', 'Universidad', 'Acueducto', 'Claro')),
+  referencia   TEXT NOT NULL CHECK (length(btrim(referencia)) > 0),
+  creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX cuentas_pago_alias_unico
+  ON cuentas_pago (usuario_doc, lower(btrim(alias)));
+CREATE UNIQUE INDEX cuentas_pago_referencia_unica
+  ON cuentas_pago (usuario_doc, convenio, lower(btrim(referencia)));
+CREATE INDEX cuentas_pago_usuario_idx ON cuentas_pago (usuario_doc);
 
 -- ------------------------------------------------------------
 -- movimientos
@@ -138,6 +162,7 @@ CREATE TABLE alertas (
   id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   usuario_doc  TEXT NOT NULL REFERENCES usuarios (doc) ON DELETE CASCADE,
   texto        TEXT NOT NULL CHECK (length(btrim(texto)) > 0),
+  leida        BOOLEAN NOT NULL DEFAULT FALSE,
   creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

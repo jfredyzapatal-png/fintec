@@ -214,9 +214,21 @@
     pagar: function (convenio, referencia, valor) {
       return pedir('POST', '/api/pagos', { convenio: convenio, referencia: referencia, valor: valor });
     },
+    cuentasPago: function () { return pedir('GET', '/api/cuentas-pago'); },
+    registrarCuentaPago: function (alias, convenio, referencia) {
+      return pedir('POST', '/api/cuentas-pago', { alias: alias, convenio: convenio, referencia: referencia });
+    },
+    eliminarCuentaPago: function (id) {
+      return pedir('DELETE', '/api/cuentas-pago/' + encodeURIComponent(id));
+    },
 
     /* ---------- bolsillos ---------- */
-    crearBolsillo: function (nombre) { return pedir('POST', '/api/bolsillos', { nombre: nombre }); },
+    crearBolsillo: function (nombre, meta) {
+      return pedir('POST', '/api/bolsillos', { nombre: nombre, meta: meta || 0 });
+    },
+    configurarMeta: function (id, meta) {
+      return pedir('PUT', '/api/bolsillos/' + encodeURIComponent(id) + '/meta', { meta: meta || 0 });
+    },
     aportarBolsillo: function (id, monto) {
       return pedir('POST', '/api/bolsillos/' + encodeURIComponent(id) + '/aportar', { monto: monto });
     },
@@ -225,6 +237,7 @@
     },
 
     alertas: function () { return pedir('GET', '/api/alertas'); },
+    marcarAlertasLeidas: function () { return pedir('POST', '/api/alertas/leidas', {}); },
 
     /* ---------- creditos ---------- */
     listarCreditos: function () { return pedir('GET', '/api/creditos'); },

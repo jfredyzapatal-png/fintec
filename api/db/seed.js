@@ -23,17 +23,20 @@ const CLIENTES = [
   {
     doc: '1023456789', nombre: 'María Gómez', clave: 'maria123', cuenta: '001-234-567',
     disponible: 2450000, tipo: 'CC', correo: 'maria.gomez@correo.com', nacimiento: '1996-04-12',
-    bolsillos: [{ nombre: 'Vacaciones', saldo: 800000 }, { nombre: 'Emergencias', saldo: 350000 }],
+    bolsillos: [
+      { nombre: 'Vacaciones', saldo: 800000, meta: 2000000 },
+      { nombre: 'Emergencias', saldo: 350000, meta: 500000 },
+    ],
   },
   {
     doc: '1098765432', nombre: 'Carlos Ruiz', clave: 'carlos123', cuenta: '001-880-112',
     disponible: 1200000, tipo: 'CC', correo: 'carlos.ruiz@correo.com', nacimiento: '1990-11-02',
-    bolsillos: [{ nombre: 'Estudio', saldo: 400000 }],
+    bolsillos: [{ nombre: 'Estudio', saldo: 400000, meta: 1000000 }],
   },
   {
     doc: '1076543210', nombre: 'Laura Díaz', clave: 'laura123', cuenta: '009-441-220',
     disponible: 3800000, tipo: 'CE', correo: 'laura.diaz@correo.com', nacimiento: '1988-07-19',
-    bolsillos: [{ nombre: 'Viaje', saldo: 1000000 }],
+    bolsillos: [{ nombre: 'Viaje', saldo: 1000000, meta: 1000000 }],
   },
   {
     doc: '1045678901', nombre: 'Andrés Pérez', clave: 'andres123', cuenta: '008-990-455',
@@ -43,12 +46,12 @@ const CLIENTES = [
   {
     doc: '1012334455', nombre: 'Valentina Soto', clave: 'valentina123', cuenta: '001-556-330',
     disponible: 3200000, tipo: 'CC', correo: 'valentina.soto@correo.com', nacimiento: '1997-09-30',
-    bolsillos: [{ nombre: 'Moto', saldo: 700000 }],
+    bolsillos: [{ nombre: 'Moto', saldo: 700000, meta: 2500000 }],
   },
   {
     doc: '1067889900', nombre: 'Julián Mesa', clave: 'julian123', cuenta: '007-221-884',
     disponible: 2960000, tipo: 'CE', correo: 'julian.mesa@correo.com', nacimiento: '1993-03-14',
-    bolsillos: [{ nombre: 'Estudio', saldo: 500000 }],
+    bolsillos: [{ nombre: 'Estudio', saldo: 500000, meta: 1500000 }],
   },
 ];
 
@@ -72,7 +75,7 @@ async function main() {
 
   await enTransaccion(async (cliente) => {
     console.log('[seed] limpiando tablas...');
-    await cliente.query('TRUNCATE alertas, movimientos, bolsillos, usuarios RESTART IDENTITY CASCADE');
+    await cliente.query('TRUNCATE alertas, movimientos, bolsillos, cuentas_pago, usuarios RESTART IDENTITY CASCADE');
     await cliente.query("ALTER SEQUENCE movimientos_codigo_seq RESTART WITH 8841");
 
     /* ---------- clientes ---------- */
@@ -88,8 +91,8 @@ async function main() {
       );
       for (const b of c.bolsillos) {
         await cliente.query(
-          `INSERT INTO bolsillos (usuario_doc, nombre, saldo) VALUES ($1,$2,$3)`,
-          [c.doc, b.nombre, b.saldo],
+          `INSERT INTO bolsillos (usuario_doc, nombre, saldo, meta) VALUES ($1,$2,$3,$4)`,
+          [c.doc, b.nombre, b.saldo, b.meta || 0],
         );
       }
     }
@@ -145,6 +148,14 @@ async function main() {
     await alerta(maria.doc, `Enviada ${fmt(180000)} a ${laura.nombre}`, 6);
     await alerta(laura.doc, `Recibida ${fmt(180000)} de ${maria.nombre}`, 6);
     await alerta(maria.doc, 'Transferencia rechazada por saldo insuficiente', 12);
+
+    /* Cuentas de convenio ya guardadas, para pagar sin reescribir la referencia. */
+    await cliente.query(
+      `INSERT INTO cuentas_pago (usuario_doc, alias, convenio, referencia) VALUES
+         ($1, 'EPM de la casa', 'EPM', '10993821'),
+         ($1, 'Matrícula', 'Universidad', '2026-1044')`,
+      [maria.doc],
+    );
   });
 
   /* ---------- verificacion del total del sistema ---------- */

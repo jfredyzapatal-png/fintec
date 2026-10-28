@@ -9,7 +9,7 @@
 
 import { enTransaccion, query } from '../db.js';
 import { malaPeticion, noEncontrado, conflicto } from '../lib/errores.js';
-import { validarMonto, normalizarMonto, fmt } from '../lib/reglas.js';
+import { validarMonto, validarMeta, normalizarMonto, fmt } from '../lib/reglas.js';
 import { insertarMovimiento, insertarAlerta, bolsilloPublico, movimientoPublico } from './comun.js';
 
 export async function listar(usuario) {
@@ -19,10 +19,12 @@ export async function listar(usuario) {
   return rows.map(bolsilloPublico);
 }
 
-export async function crear(usuario, { nombre }) {
+export async function crear(usuario, { nombre, meta }) {
   const limpio = String(nombre || '').trim();
   if (!limpio) throw malaPeticion('Ponle un nombre al bolsillo.');
   if (limpio.length > 40) throw malaPeticion('El nombre del bolsillo es demasiado largo.');
+  const objetivo = validarMeta(meta);
+  if (objetivo.error) throw malaPeticion(objetivo.error);
 
   return enTransaccion(async (cliente) => {
     const { rows: dup } = await cliente.query(
@@ -33,10 +35,37 @@ export async function crear(usuario, { nombre }) {
     if (dup.length) throw conflicto('Ya tienes un bolsillo con ese nombre.');
 
     const { rows } = await cliente.query(
-      `INSERT INTO bolsillos (usuario_doc, nombre, saldo)
-       VALUES ($1, $2, 0) RETURNING *`,
-      [usuario.doc, limpio],
+      `INSERT INTO bolsillos (usuario_doc, nombre, saldo, meta)
+       VALUES ($1, $2, 0, $3) RETURNING *`,
+      [usuario.doc, limpio, objetivo.meta],
     );
+    if (objetivo.meta > 0) {
+      await insertarAlerta(
+        cliente, usuario.doc,
+        `Creaste el bolsillo ${limpio} con meta de ${fmt(objetivo.meta)}`,
+      );
+    }
+    return bolsilloPublico(rows[0]);
+  });
+}
+
+/* Cambia la meta sin mover dinero. 0 la quita. */
+export async function configurarMeta(usuario, idBolsillo, { meta }) {
+  const objetivo = validarMeta(meta);
+  if (objetivo.error) throw malaPeticion(objetivo.error);
+
+  return enTransaccion(async (cliente) => {
+    const b = await bloquearBolsilloPropio(cliente, idBolsillo, usuario.doc);
+    const { rows } = await cliente.query(
+      `UPDATE bolsillos SET meta = $2
+       WHERE id = $1 AND usuario_doc = $3
+       RETURNING *`,
+      [b.id, objetivo.meta, usuario.doc],
+    );
+    const texto = objetivo.meta > 0
+      ? `La meta de ${b.nombre} quedó en ${fmt(objetivo.meta)}`
+      : `Quitaste la meta de ${b.nombre}`;
+    await insertarAlerta(cliente, usuario.doc, texto);
     return bolsilloPublico(rows[0]);
   });
 }

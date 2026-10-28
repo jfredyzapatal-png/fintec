@@ -77,6 +77,18 @@ input,select,textarea{width:100%;background:#F8FAFD;border:1px solid var(--line)
 header.app{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#ffffffee;backdrop-filter:blur(10px);z-index:5}
 nav button{background:transparent;border:0;color:var(--dim);margin-right:6px;padding:8px 10px;border-radius:10px;cursor:pointer;font:inherit}
 nav button.on,nav button:hover{color:var(--navy);background:#EEF4FF}
+.campana{display:inline-flex;align-items:center;gap:6px}
+.badge{display:none;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#C23434;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}
+.badge.on{display:inline-block}
+.btn:disabled,.chip:disabled{opacity:.55;cursor:not-allowed}
+.wrap .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.filtros{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+.meta{margin:8px 0 4px}
+.barra{height:8px;background:#E3E9F5;border-radius:999px;overflow:hidden}
+.barra > span{display:block;height:100%;background:linear-gradient(90deg,var(--sky),var(--blue));border-radius:999px}
+.meta-txt{color:var(--dim);font-size:13px;margin:6px 0 0}
+.alerta{margin-bottom:10px}
+.alerta.nueva{border-color:#1757D8}
 .wrap{padding:24px;max-width:1180px;margin:0 auto}
 .hero-card{background:linear-gradient(135deg,#F2F7FF,#EAF2FF);border:1px solid var(--line);border-radius:28px;padding:28px;display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
 .big{font-size:42px;margin:8px 0}
@@ -90,4 +102,4 @@ table{width:100%;border-collapse:collapse;font-size:14px} th,td{padding:10px 6px
 .err{display:none;background:#FDEAEA;color:#C23434;border-radius:10px;padding:10px 12px;font-size:13px;margin:12px 0 0}
 .err.on{display:block}
 .toast{display:none;position:fixed;bottom:16px;right:16px;background:var(--navy);color:#fff;padding:12px 16px;border-radius:12px;font-weight:600}
-@media(max-width:900px){.hero,.hero-card,.grid,.products,.stats,.testimonials,.sim-card{grid-template-columns:1fr} nav{display:flex;flex-wrap:wrap}}
+@media(max-width:900px){.hero,.hero-card,.grid,.products,.stats,.testimonials,.sim-card,.filtros{grid-template-columns:1fr} nav{display:flex;flex-wrap:wrap}}

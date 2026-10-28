@@ -17,6 +17,11 @@ export async function resumen(usuario) {
 
   return {
     cuenta: usuario.cuenta,
+    nombre: usuario.nombre,
+    doc: usuario.doc,
+    tipo: usuario.tipo,
+    correo: usuario.correo || '',
+    estado: usuario.estado,
     disponible: Number(usuario.disponible),
     bolsillos: bolsillos.rows.map(bolsilloPublico),
     totalBolsillos: bolsillos.rows.reduce((s, b) => s + Number(b.saldo), 0),
@@ -97,14 +102,41 @@ export async function movimientos(usuario, { desde, hasta } = {}) {
   return rows.map((m) => movimientoPublico(m, m.codigo_original));
 }
 
-/* GET /api/alertas — RF-06 */
+/* GET /api/alertas — RF-06
+   noLeidas alimenta la campanita. El listado trae tambien las ya leidas
+   para que el historial no desaparezca al abrir la pantalla. */
 export async function alertas(usuario) {
-  const { rows } = await query(
-    `SELECT id, texto, creado_en FROM alertas
-     WHERE usuario_doc = $1
-     ORDER BY creado_en DESC, id DESC
-     LIMIT 200`,
+  const [lista, conteo] = await Promise.all([
+    query(
+      `SELECT id, texto, leida, creado_en FROM alertas
+       WHERE usuario_doc = $1
+       ORDER BY creado_en DESC, id DESC
+       LIMIT 200`,
+      [usuario.doc],
+    ),
+    query(
+      `SELECT count(*)::int AS n FROM alertas
+       WHERE usuario_doc = $1 AND leida = FALSE`,
+      [usuario.doc],
+    ),
+  ]);
+  return {
+    alertas: lista.rows.map((a) => ({
+      id: Number(a.id),
+      texto: a.texto,
+      leida: a.leida === true,
+      fecha: a.creado_en,
+    })),
+    noLeidas: Number(conteo.rows[0].n),
+  };
+}
+
+/* POST /api/alertas/leidas — al abrir la campanita se marcan como vistas. */
+export async function marcarAlertasLeidas(usuario) {
+  await query(
+    `UPDATE alertas SET leida = TRUE
+     WHERE usuario_doc = $1 AND leida = FALSE`,
     [usuario.doc],
   );
-  return rows.map((a) => ({ id: Number(a.id), texto: a.texto, fecha: a.creado_en }));
+  return { ok: true, noLeidas: 0 };
 }
