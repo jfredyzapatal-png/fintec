@@ -170,6 +170,8 @@ function fallo(idCaja, titulo, e, reintentar) {
 }
 
 /* ---------- sesion ---------- */
+let desafioAcceso = null;
+
 function entrar() {
   const doc = val('lg-doc');
   const clave = val('lg-pass');
@@ -178,14 +180,67 @@ function entrar() {
   lgError('');
   /* El bloqueo por intentos fallidos y la cuenta bloqueada por el
      administrador los decide el servidor: aqui solo se muestra. */
-  API.login(doc, clave).then(u => {
+  API.login(doc, clave).then(r => {
+    if (r && r.requiereCodigo) { mostrarPasoCodigo(r); return; }
+    const u = r && r.usuario;
     if (!u || !u.rol) { lgError('La API no devolvió el rol del usuario.'); return; }
-    sesion = u;
-    el('lg-pass').value = '';
-    ping('Bienvenido, ' + u.nombre);
-    reiniciarInactividad();
-    go(u.rol === 'admin' ? 'a-panel' : u.rol === 'contable' ? 'c-panel' : 'u-inicio');
+    completarEntrada(u);
   }).catch(e => lgError(mensajeError(e)));
+}
+
+function completarEntrada(u) {
+  sesion = u;
+  desafioAcceso = null;
+  if (el('lg-pass')) el('lg-pass').value = '';
+  ping('Bienvenido, ' + u.nombre);
+  reiniciarInactividad();
+  go(u.rol === 'admin' ? 'a-panel' : u.rol === 'contable' ? 'c-panel' : 'u-inicio');
+}
+
+function mostrarPasoCodigo(r) {
+  desafioAcceso = r.desafioId;
+  if (el('lg-codigo-demo')) el('lg-codigo-demo').textContent = r.codigoDemostracion || '';
+  if (el('lg-codigo')) el('lg-codigo').value = '';
+  err('lg-codigo-error', '');
+  if (el('lg-titulo')) el('lg-titulo').textContent = 'Confirma tu ingreso';
+  if (el('lg-paso-clave')) el('lg-paso-clave').hidden = true;
+  if (el('lg-paso-codigo')) el('lg-paso-codigo').hidden = false;
+  if (el('lg-codigo')) el('lg-codigo').focus();
+}
+
+function volverAClave() {
+  desafioAcceso = null;
+  if (el('lg-titulo')) el('lg-titulo').textContent = 'Bienvenido de vuelta';
+  if (el('lg-paso-codigo')) el('lg-paso-codigo').hidden = true;
+  if (el('lg-paso-clave')) el('lg-paso-clave').hidden = false;
+  if (el('lg-codigo')) el('lg-codigo').value = '';
+  err('lg-codigo-error', '');
+}
+
+function confirmarIngreso() {
+  if (!desafioAcceso) { volverAClave(); return; }
+  const codigo = val('lg-codigo');
+  if (!/^\d{6}$/.test(codigo)) {
+    err('lg-codigo-error', 'Escribe los 6 dígitos del código.');
+    return;
+  }
+  err('lg-codigo-error', '');
+  API.confirmarCodigo(desafioAcceso, codigo).then(r => {
+    const u = r && r.usuario;
+    if (!u || !u.rol) {
+      err('lg-codigo-error', 'La API no devolvió el rol del usuario.');
+      return;
+    }
+    completarEntrada(u);
+  }).catch(e => {
+    const msg = mensajeError(e);
+    if (/contraseña/i.test(msg)) {
+      volverAClave();
+      lgError(msg);
+      return;
+    }
+    err('lg-codigo-error', msg);
+  });
 }
 
 function salir() {
@@ -800,7 +855,6 @@ function pintarConfig() {
     const topeMensual = num(primero(cuenta, ['topeMensual'], 0));
     const enviadoDia = Math.max(0, topeDiario - num(primero(cuenta, ['cupoDiario'], 0)));
     const enviadoMes = Math.max(0, topeMensual - num(primero(cuenta, ['cupoMensual'], 0)));
-    const correo = primero(cuenta, ['correo'], '');
     const minInact = (window.FINTEC_CONFIG && window.FINTEC_CONFIG.INACTIVIDAD_MIN) || 10;
     const nombre = primero(cuenta, ['nombre'], sesion && sesion.nombre);
     const doc = primero(cuenta, ['doc'], sesion && sesion.doc);
@@ -813,8 +867,7 @@ function pintarConfig() {
         '<h3>Tu cuenta</h3>' +
         '<p style="margin:0"><strong>' + esc(nombre) + '</strong></p>' +
         '<p style="color:var(--dim);font-size:13px;margin:6px 0 0">' +
-          esc(tipo) + ' ' + esc(doc) + ' · cuenta ' + esc(nro) +
-          (correo ? ' · ' + esc(correo) : ' · sin correo registrado') + '</p>' +
+          esc(tipo) + ' ' + esc(doc) + ' · cuenta ' + esc(nro) + '</p>' +
       '</div>' +
       /* RF-04 — cada usuario define sus propios topes de transferencia */
       '<div class="card" style="margin-top:16px">' +
@@ -841,24 +894,66 @@ function pintarConfig() {
         '<p id="cp-error" class="err" role="alert" aria-live="polite"></p>' +
         '<div class="row"><button class="btn mint" onclick="cambiarPassword()">Guardar</button></div>' +
       '</div>' +
+      tarjetaDobleFactor(cuenta) +
+      tarjetaActividad(cuenta) +
       '<div class="card" style="margin-top:16px">' +
         '<h3>Sesión</h3>' +
         '<p style="color:var(--dim);font-size:13px;margin-top:0">Si dejas de usar la app durante ' + minInact +
           ' minutos, cerramos la sesión solos.</p>' +
         '<div class="row"><button class="btn ghost" onclick="salir()">Cerrar sesión ahora</button></div>' +
-      '</div>' +
-      /* Queda a la vista para el cierre. No se activa en esta entrega. */
-      '<div class="card" style="margin-top:16px">' +
-        '<h3>Doble autenticación</h3>' +
-        '<p style="color:var(--dim);font-size:13px;margin-top:0">Además de la contraseña, al entrar desde un equipo nuevo ' +
-          'FINTEC pedirá un código enviado a tu correo. La dejamos para el cierre del proyecto.</p>' +
-        '<p style="margin:0 0 8px"><span class="st warn">Pendiente</span></p>' +
-        (correo
-          ? '<p style="color:var(--dim);font-size:13px;margin:0">El código iría a ' + esc(correo) + '.</p>'
-          : '<p style="color:var(--dim);font-size:13px;margin:0">Esta cuenta no tiene correo. Sin correo no se puede activar.</p>') +
-        '<div class="row"><button class="btn ghost" type="button" disabled>Activar más adelante</button></div>' +
       '</div>';
   }).catch(e => { if (!sesionVencida(e)) fallo('b-config', 'Configuración', e, 'u-config'); });
+}
+
+function cuando(valor, vacio) {
+  return valor ? fechaCorta(valor) : vacio;
+}
+
+function tarjetaDobleFactor(c) {
+  const activo = !!primero(c, ['dobleFactor'], false);
+  return '<div class="card" style="margin-top:16px">' +
+    '<h3>Doble autenticación</h3>' +
+    '<p style="margin:0 0 8px"><span class="st ' + (activo ? 'ok' : 'warn') + '">' +
+      (activo ? 'Activada' : 'Apagada') + '</span></p>' +
+    '<p style="color:var(--dim);font-size:13px;margin-top:0">Si la activas, después de la contraseña FINTEC pide un código de 6 dígitos. ' +
+      'Caduca a los 5 minutos y a los 3 intentos fallidos hay que volver a escribir la contraseña. ' +
+      'El código aparece en la pantalla de ingreso.</p>' +
+    '<label for="df-clave">Contraseña actual</label>' +
+    '<input id="df-clave" type="password" autocomplete="current-password" />' +
+    '<p id="df-error" class="err" role="alert" aria-live="polite"></p>' +
+    '<div class="row"><button class="btn mint" onclick="cambiarDobleFactor(' + (activo ? 'false' : 'true') + ')">' +
+      (activo ? 'Desactivar' : 'Activar') + '</button></div>' +
+  '</div>';
+}
+
+function tarjetaActividad(c) {
+  const bloqueo = primero(c, ['bloqueadoHasta'], null);
+  const sigueBloqueada = bloqueo && new Date(bloqueo).getTime() > Date.now();
+  return '<div class="card" style="margin-top:16px">' +
+    '<h3>Actividad reciente</h3>' +
+    '<p style="margin:6px 0"><strong>Último ingreso</strong><br><span style="color:var(--dim);font-size:13px">' +
+      esc(cuando(primero(c, ['ultimoIngreso'], null), 'Aún no registramos un ingreso')) + '</span></p>' +
+    '<p style="margin:6px 0"><strong>Último cambio de contraseña</strong><br><span style="color:var(--dim);font-size:13px">' +
+      esc(cuando(primero(c, ['claveCambiadaEn'], null), 'No la has cambiado desde que abriste la cuenta')) + '</span></p>' +
+    '<p style="margin:6px 0"><strong>Último bloqueo por intentos</strong><br><span style="color:var(--dim);font-size:13px">' +
+      esc(cuando(primero(c, ['ultimoBloqueo'], null), 'Sin bloqueos por intentos')) + '</span></p>' +
+    (sigueBloqueada
+      ? '<p style="margin:6px 0"><span class="st bad">Bloqueada hasta ' + esc(fechaCorta(bloqueo)) + '</span></p>'
+      : '') +
+  '</div>';
+}
+
+function cambiarDobleFactor(activo) {
+  const clave = val('df-clave');
+  if (!clave) { err('df-error', 'Escribe tu contraseña para confirmar.'); return; }
+  err('df-error', '');
+  API.configurarDobleFactor(activo, clave)
+    .then(() => {
+      ping(activo ? 'Doble autenticación activada' : 'Doble autenticación desactivada');
+      refrescarCampana();
+      pintarConfig();
+    })
+    .catch(e => { if (!sesionVencida(e)) err('df-error', mensajeError(e)); });
 }
 
 function guardarTopes() {
@@ -1305,7 +1400,11 @@ function go(id) {
       }
     }
   }
-  if (id === 'login') { lgError(''); if (el('lg-pass')) el('lg-pass').value = ''; }
+  if (id === 'login') {
+    lgError('');
+    if (el('lg-pass')) el('lg-pass').value = '';
+    volverAClave();
+  }
   const destino = el(id);
   if (!destino) return;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));

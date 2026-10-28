@@ -3,18 +3,21 @@
    Las contrasenas SOLO se guardan como hash bcrypt (RNF-02).
    ============================================================ */
 
+import { randomBytes, randomInt } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { config } from '../config.js';
 import { enTransaccion, query } from '../db.js';
 import { malaPeticion, conflicto, noAutenticado, prohibido } from '../lib/errores.js';
 import {
-  validarRegistro, validarCambioClave, nuevoNumeroCuenta,
-  siguienteIntento, estaBloqueadoPorIntentos, MAX_INTENTOS, BLOQUEO_MIN,
+  validarRegistro, validarCambioClave,
+  nuevoNumeroCuenta, siguienteIntento, estaBloqueadoPorIntentos, MAX_INTENTOS, BLOQUEO_MIN,
   TOPE_DIARIO_DEF, TOPE_MENSUAL_DEF, fechaCorta,
 } from '../lib/reglas.js';
 import { insertarAlerta } from './comun.js';
 
 const MSG_CREDENCIALES = 'Usuario o contraseña incorrectos.';
+const CODIGO_MINUTOS = 5;
+const CODIGO_INTENTOS = 3;
 
 export async function registrar({ doc, nombre, clave, correo, tipo, nacimiento }) {
   const error = validarRegistro({ doc, nombre, clave, correo, nacimiento });
@@ -101,8 +104,12 @@ export async function login({ documento, clave }) {
       if (usuario) {
         const paso = siguienteIntento(usuario.intentos_fallidos);
         await cliente.query(
-          `UPDATE usuarios SET intentos_fallidos = $2, bloqueado_hasta = $3 WHERE doc = $1`,
-          [usuario.doc, paso.intentos, paso.bloqueadoHasta],
+          `UPDATE usuarios
+             SET intentos_fallidos = $2,
+                 bloqueado_hasta = $3,
+                 ultimo_bloqueo = CASE WHEN $4::boolean THEN now() ELSE ultimo_bloqueo END
+           WHERE doc = $1`,
+          [usuario.doc, paso.intentos, paso.bloqueadoHasta, paso.bloqueado === true],
         );
         if (paso.bloqueado) {
           throw noAutenticado(
@@ -124,6 +131,95 @@ export async function login({ documento, clave }) {
     await cliente.query(
       `UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE doc = $1`,
       [usuario.doc],
+    );
+
+    /* Admin y contable entran de un paso: la doble autenticación es
+       solo para la cuenta del cliente, y nace apagada. */
+    if (usuario.rol === 'usuario' && usuario.doble_factor === true) {
+      const codigo = String(randomInt(0, 1000000)).padStart(6, '0');
+      const desafioId = randomBytes(24).toString('hex');
+      const expira = new Date(Date.now() + CODIGO_MINUTOS * 60000);
+      const hash = await bcrypt.hash(codigo, config.bcryptRounds);
+      await cliente.query(`DELETE FROM desafios_acceso WHERE usuario_doc = $1`, [usuario.doc]);
+      await cliente.query(
+        `INSERT INTO desafios_acceso (id, usuario_doc, codigo_hash, expira_en)
+         VALUES ($1, $2, $3, $4)`,
+        [desafioId, usuario.doc, hash, expira],
+      );
+      return {
+        requiereCodigo: true,
+        desafioId,
+        codigoDemostracion: codigo,
+        expiraEn: expira.toISOString(),
+      };
+    }
+
+    await cliente.query(
+      `UPDATE usuarios SET ultimo_ingreso = now() WHERE doc = $1`,
+      [usuario.doc],
+    );
+    return { usuario };
+  });
+}
+
+/* Segundo paso. Tres códigos malos o uno vencido obligan a empezar
+   de nuevo con la contraseña. */
+export async function confirmarCodigo({ desafioId, codigo }) {
+  const id = String(desafioId || '').trim();
+  const pin = String(codigo || '').trim();
+  if (!id || !/^\d{6}$/.test(pin)) {
+    throw malaPeticion('Escribe los 6 dígitos del código.');
+  }
+
+  return enTransaccion(async (cliente) => {
+    const { rows } = await cliente.query(
+      `SELECT * FROM desafios_acceso WHERE id = $1 FOR UPDATE`,
+      [id],
+    );
+    const desafio = rows[0];
+    if (!desafio || new Date(desafio.expira_en).getTime() <= Date.now()) {
+      if (desafio) {
+        await cliente.query(`DELETE FROM desafios_acceso WHERE id = $1`, [id]);
+      }
+      throw noAutenticado('Ese código venció. Vuelve a escribir tu contraseña.');
+    }
+
+    const ok = await bcrypt.compare(pin, desafio.codigo_hash);
+    if (!ok) {
+      const intentos = Number(desafio.intentos) + 1;
+      if (intentos >= CODIGO_INTENTOS) {
+        await cliente.query(`DELETE FROM desafios_acceso WHERE id = $1`, [id]);
+        throw noAutenticado('Se agotaron los 3 intentos del código. Vuelve a escribir tu contraseña.');
+      }
+      await cliente.query(
+        `UPDATE desafios_acceso SET intentos = $2 WHERE id = $1`,
+        [id, intentos],
+      );
+      const quedan = CODIGO_INTENTOS - intentos;
+      throw noAutenticado(
+        `El código no coincide. Te queda${quedan === 1 ? '' : 'n'} ${quedan} intento${quedan === 1 ? '' : 's'}.`,
+      );
+    }
+
+    const { rows: usuarios } = await cliente.query(
+      `SELECT * FROM usuarios WHERE doc = $1 FOR UPDATE`,
+      [desafio.usuario_doc],
+    );
+    const usuario = usuarios[0];
+    if (!usuario) throw noAutenticado('El usuario ya no existe.');
+    if (usuario.estado === 'bloqueada') {
+      throw prohibido('Esta cuenta está bloqueada por el administrador. Comunícate con soporte.');
+    }
+
+    await cliente.query(`DELETE FROM desafios_acceso WHERE usuario_doc = $1`, [usuario.doc]);
+    await cliente.query(
+      `UPDATE usuarios SET ultimo_ingreso = now(), intentos_fallidos = 0, bloqueado_hasta = NULL
+       WHERE doc = $1`,
+      [usuario.doc],
+    );
+    await insertarAlerta(
+      cliente, usuario.doc,
+      `Ingreso confirmado con código el ${fechaCorta(new Date())}`,
     );
     return usuario;
   });
@@ -149,10 +245,50 @@ export async function cambiarPassword(usuario, { actual, nueva }) {
     if (mismaQueGuardada) throw malaPeticion('La nueva contraseña debe ser distinta a la actual.');
 
     const hash = await bcrypt.hash(String(nueva), config.bcryptRounds);
-    await cliente.query(`UPDATE usuarios SET clave_hash = $2 WHERE doc = $1`, [usuario.doc, hash]);
+    await cliente.query(
+      `UPDATE usuarios SET clave_hash = $2, clave_cambiada_en = now() WHERE doc = $1`,
+      [usuario.doc, hash],
+    );
 
     await insertarAlerta(cliente, usuario.doc, `Contraseña modificada el ${fechaCorta(new Date())}`);
     return { ok: true };
+  });
+}
+
+async function exigirClave(cliente, doc, clave) {
+  const { rows } = await cliente.query(
+    `SELECT * FROM usuarios WHERE doc = $1 FOR UPDATE`, [doc],
+  );
+  const actual = rows[0];
+  if (!actual) throw noAutenticado('El usuario ya no existe.');
+  if (!clave) throw malaPeticion('Escribe tu contraseña para confirmar.');
+  const ok = await bcrypt.compare(String(clave), actual.clave_hash);
+  if (!ok) throw malaPeticion('La contraseña no coincide.');
+  return actual;
+}
+
+export async function configurarDobleFactor(usuario, { activo, clave }) {
+  if (usuario.rol !== 'usuario') {
+    throw malaPeticion('La doble autenticación es para las cuentas de cliente.');
+  }
+  const encender = activo === true || activo === 'true';
+
+  return enTransaccion(async (cliente) => {
+    const actual = await exigirClave(cliente, usuario.doc, clave);
+    await cliente.query(
+      `UPDATE usuarios SET doble_factor = $2 WHERE doc = $1`,
+      [actual.doc, encender],
+    );
+    if (!encender) {
+      await cliente.query(`DELETE FROM desafios_acceso WHERE usuario_doc = $1`, [actual.doc]);
+    }
+    await insertarAlerta(
+      cliente, actual.doc,
+      encender
+        ? 'Activaste la doble autenticación. El próximo ingreso pedirá un código.'
+        : 'Desactivaste la doble autenticación.',
+    );
+    return { dobleFactor: encender };
   });
 }
 

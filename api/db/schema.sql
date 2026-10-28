@@ -19,6 +19,7 @@ DROP TABLE IF EXISTS creditos       CASCADE;
 DROP TABLE IF EXISTS movimientos    CASCADE;
 DROP TABLE IF EXISTS cuentas_pago   CASCADE;
 DROP TABLE IF EXISTS bolsillos      CASCADE;
+DROP TABLE IF EXISTS desafios_acceso CASCADE;
 DROP TABLE IF EXISTS usuarios       CASCADE;
 DROP SEQUENCE IF EXISTS movimientos_codigo_seq;
 
@@ -54,6 +55,11 @@ CREATE TABLE usuarios (
   -- RNF-02: 5 intentos fallidos -> bloqueo temporal de 15 minutos
   intentos_fallidos INTEGER    NOT NULL DEFAULT 0 CHECK (intentos_fallidos >= 0),
   bloqueado_hasta   TIMESTAMPTZ,
+  ultimo_bloqueo    TIMESTAMPTZ,
+  ultimo_ingreso    TIMESTAMPTZ,
+  clave_cambiada_en TIMESTAMPTZ,
+  -- Doble autenticación: solo aplica a rol 'usuario'. Nace apagada.
+  doble_factor      BOOLEAN     NOT NULL DEFAULT FALSE,
   creado_en         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -63,6 +69,19 @@ CREATE INDEX usuarios_rol_idx    ON usuarios (rol);
 CREATE INDEX usuarios_estado_idx ON usuarios (estado);
 -- apoya la busqueda del administrador por nombre/correo (RF-05 CA-05.1)
 CREATE INDEX usuarios_nombre_lower_idx ON usuarios (lower(nombre));
+
+-- Código de un solo uso para el segundo paso del ingreso.
+-- El código en claro no se guarda: solo su hash bcrypt.
+CREATE TABLE desafios_acceso (
+  id           TEXT PRIMARY KEY,
+  usuario_doc  TEXT NOT NULL REFERENCES usuarios (doc) ON DELETE CASCADE,
+  codigo_hash  TEXT NOT NULL,
+  expira_en    TIMESTAMPTZ NOT NULL,
+  intentos     INTEGER NOT NULL DEFAULT 0 CHECK (intentos >= 0),
+  creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX desafios_acceso_usuario_idx ON desafios_acceso (usuario_doc);
 
 -- ------------------------------------------------------------
 -- bolsillos

@@ -139,7 +139,8 @@
 <section class="screen" id="login">
   <div class="auth"><div class="box">
     <div class="logo" style="font-size:18px">FINTEC</div>
-    <h1 class="d" style="margin:10px 0 6px;font-size:26px">Bienvenido de vuelta</h1>
+    <h1 class="d" id="lg-titulo" style="margin:10px 0 6px;font-size:26px">Bienvenido de vuelta</h1>
+    <div id="lg-paso-clave">
     <p style="color:var(--dim);margin-top:0">Ingresa con tu documento y contraseña. Tras 5 intentos fallidos, bloqueamos la cuenta 15 minutos.</p>
     <label for="lg-doc">Usuario o documento</label><input id="lg-doc" name="documento" autocomplete="username" placeholder="admin" onkeydown="if(event.key==='Enter')entrar()" />
     <label for="lg-pass">Contraseña</label><input id="lg-pass" name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" onkeydown="if(event.key==='Enter')entrar()" />
@@ -152,6 +153,15 @@
       <button class="chip" onclick="rellenar('1076543210','laura123')">Laura</button>
       <button class="chip" onclick="rellenar('admin','admin123')">Admin</button>
       <button class="chip" onclick="rellenar('contable','conta123')">Contable</button>
+    </div>
+    </div>
+    <div id="lg-paso-codigo" hidden>
+      <p style="color:var(--dim);margin-top:0">Escribe el código de 6 dígitos que aparece abajo. Caduca en 5 minutos.</p>
+      <div class="codigo-demo" id="lg-codigo-demo" aria-label="Código de demostración"></div>
+      <label for="lg-codigo">Código de 6 dígitos</label>
+      <input id="lg-codigo" name="codigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" onkeydown="if(event.key==='Enter')confirmarIngreso()" />
+      <p id="lg-codigo-error" class="err" role="alert" aria-live="polite"></p>
+      <div class="row"><button class="btn mint" onclick="confirmarIngreso()">Confirmar código</button><button class="btn ghost" onclick="volverAClave()">Volver</button></div>
     </div>
     <p style="margin-top:18px"><button class="ghost btn" style="width:100%" onclick="go('home')">← Volver al inicio</button></p>
   </div></div>

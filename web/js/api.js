@@ -181,13 +181,27 @@
     login: function (documento, clave) {
       return pedir('POST', '/api/auth/login', { documento: documento, clave: clave })
         .then(function (r) {
+          if (r && r.requiereCodigo) return r;
           if (!r || !r.token) {
             throw new ErrorApi('La API no devolvió un token de sesión.', 0, r);
           }
           token = r.token;
           usuario = r.usuario || null;
           guardarSesion();
-          return usuario;
+          return r;
+        });
+    },
+
+    confirmarCodigo: function (desafioId, codigo) {
+      return pedir('POST', '/api/auth/codigo', { desafioId: desafioId, codigo: codigo })
+        .then(function (r) {
+          if (!r || !r.token) {
+            throw new ErrorApi('La API no devolvió un token de sesión.', 0, r);
+          }
+          token = r.token;
+          usuario = r.usuario || null;
+          guardarSesion();
+          return r;
         });
     },
 
@@ -199,6 +213,9 @@
     cuentaMe: function () { return pedir('GET', '/api/cuenta/me'); },
     guardarTopes: function (topeDiario, topeMensual) {
       return pedir('PUT', '/api/cuenta/topes', { topeDiario: topeDiario, topeMensual: topeMensual });
+    },
+    configurarDobleFactor: function (activo, clave) {
+      return pedir('PUT', '/api/cuenta/doble-factor', { activo: activo, clave: clave });
     },
     titular: function (cuenta) {
       return pedir('GET', '/api/cuenta/' + encodeURIComponent(cuenta) + '/titular');

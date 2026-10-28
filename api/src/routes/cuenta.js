@@ -5,6 +5,7 @@ import { Router } from 'express';
 import { requiereAuth } from '../middleware/auth.js';
 import { requierePermiso, soloLecturaContable } from '../middleware/roles.js';
 import * as cuenta from '../services/cuenta.js';
+import * as auth from '../services/auth.js';
 import * as transferencias from '../services/transferencias.js';
 import * as pagos from '../services/pagos.js';
 import * as bolsillos from '../services/bolsillos.js';
@@ -21,6 +22,14 @@ rutasCuenta.use(requiereAuth, soloLecturaContable);
 rutasCuenta.get('/cuenta/me', requierePermiso('cuenta:leer'), async (req, res, next) => {
   try {
     res.json(await cuenta.resumen(req.usuario));
+  } catch (e) { next(e); }
+});
+
+/* PUT /api/cuenta/doble-factor */
+rutasCuenta.put('/cuenta/doble-factor', requierePermiso('cuenta:topes'), async (req, res, next) => {
+  try {
+    const { activo, clave } = req.body || {};
+    res.json(await auth.configurarDobleFactor(req.usuario, { activo, clave }));
   } catch (e) { next(e); }
 });
 

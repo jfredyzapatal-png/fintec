@@ -20,11 +20,32 @@ rutasAuth.post('/registro', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-/* POST /api/auth/login -> {token, usuario} */
+/* POST /api/auth/login -> {token, usuario} o {requiereCodigo, ...} */
 rutasAuth.post('/login', async (req, res, next) => {
   try {
     const { documento, clave } = req.body || {};
-    const u = await servicio.login({ documento, clave });
+    const r = await servicio.login({ documento, clave });
+    if (r.requiereCodigo) {
+      return res.json({
+        requiereCodigo: true,
+        desafioId: r.desafioId,
+        codigoDemostracion: r.codigoDemostracion,
+        expiraEn: r.expiraEn,
+      });
+    }
+    const u = r.usuario;
+    res.json({
+      token: firmarToken(u),
+      usuario: { doc: u.doc, nombre: u.nombre, rol: u.rol, cuenta: u.cuenta },
+    });
+  } catch (e) { next(e); }
+});
+
+/* POST /api/auth/codigo -> {token, usuario} */
+rutasAuth.post('/codigo', async (req, res, next) => {
+  try {
+    const { desafioId, codigo } = req.body || {};
+    const u = await servicio.confirmarCodigo({ desafioId, codigo });
     res.json({
       token: firmarToken(u),
       usuario: { doc: u.doc, nombre: u.nombre, rol: u.rol, cuenta: u.cuenta },
