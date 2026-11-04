@@ -1,0 +1,73 @@
+FINTEC — Bateria del prototipo (Vitest + jsdom sobre producto/Fintec.html)
+Fecha: 03/11/2026 20:43 | Node v24.11.0 | Vitest 3.2.4 | jsdom 26.1.0
+Comando: npm run cobertura
+
+
+ RUN  v3.2.4 C:/Users/USUARIO/Documents/01-poligran/Ing de Software/FINTEC/calidad
+      Coverage enabled with v8
+
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-01 transferencia valida descuenta, acredita y notifica a ambos 149ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-02 monto igual al disponible deja el saldo en cero 75ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-03 saldo insuficiente: estado Rechazada, motivo y saldos intactos (RN-01) 60ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-04 monto cero: mensaje y ningun movimiento 59ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-05 monto negativo: mensaje y ningun movimiento 63ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-06 cuenta destino bloqueada: rechazo sin movimiento (RN-07) 58ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-07 cuenta destino inexistente: mensaje y ningun movimiento 55ms
+ ✓ tests/fintec.test.mjs > RF-04 Transferencias (Escenario 1) > CP-08 si el admin bloquea la cuenta en sesion, se cierra la sesion (RN-07) 70ms
+ ✓ tests/fintec.test.mjs > RF-04 Confirmacion de destinatario y topes > CP-38 antes de mover dinero se muestra el nombre del titular 62ms
+ ✓ tests/fintec.test.mjs > RF-04 Confirmacion de destinatario y topes > CP-39 cancelar en la confirmacion no mueve dinero 54ms
+ ✓ tests/fintec.test.mjs > RF-04 Confirmacion de destinatario y topes > CP-40 no se puede transferir a la propia cuenta 61ms
+ ✓ tests/fintec.test.mjs > RF-04 Confirmacion de destinatario y topes > CP-41 un monto por encima del tope diario se rechaza y queda registrado 63ms
+ ✓ tests/fintec.test.mjs > RF-04 Confirmacion de destinatario y topes > CP-42 el cupo diario se consume con cada envio 82ms
+ ✓ tests/fintec.test.mjs > RF-04 Confirmacion de destinatario y topes > CP-43 el tope diario no puede superar al mensual 53ms
+ ✓ tests/fintec.test.mjs > RF-04 Confirmacion de destinatario y topes > CP-44 el sistema arranca con 6 clientes y $18.000.000 38ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-09 usuario valido entra a su dashboard 47ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-10 admin entra al panel administrativo 56ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-11 contable entra al panel contable 48ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-12 contrasena incorrecta: mensaje generico que no revela el dato (CA-02.2) 38ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-13 documento inexistente: mismo mensaje generico 38ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-14 bloqueo de 15 min tras 5 intentos, solo para ese documento (RNF-02) 46ms
+ ✓ tests/fintec.test.mjs > RF-02 Autenticacion (Escenario 2) > CP-15 cuenta bloqueada por el administrador no inicia sesion (RN-07) 40ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-16 registro valido crea la cuenta activa con saldo cero (CA-01.2) 64ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-17 documento duplicado: rechaza y no crea cuenta 46ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-18 contrasena menor a 8 caracteres: rechaza 44ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-19 correo con formato invalido: rechaza 42ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-20 menor de 18 anios: rechaza (valor limite) 44ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-21 nombre faltante: rechaza por dato obligatorio 46ms
+ ✓ tests/fintec.test.mjs > RF-01 Registro (Escenario 3) > CP-22 documento con formato invalido: rechaza 54ms
+ ✓ tests/fintec.test.mjs > RF-05 Gestion administrativa (Escenario 4) > CP-23 devolucion crea reversion enlazada y restablece saldos (RN-05) 83ms
+ ✓ tests/fintec.test.mjs > RF-05 Gestion administrativa (Escenario 4) > CP-24 devolver dos veces: mensaje de la especificacion y boton deshabilitado 93ms
+ ✓ tests/fintec.test.mjs > RF-05 Gestion administrativa (Escenario 4) > CP-25 destino sin saldo suficiente: rechaza y no mueve dinero 95ms
+ ✓ tests/fintec.test.mjs > RF-05 Gestion administrativa (Escenario 4) > CP-26 cancelacion deja el original en estado Cancelada (CA-04.1) 92ms
+ ✓ tests/fintec.test.mjs > RF-05 Gestion administrativa (Escenario 4) > CP-23b el administrador busca por documento, cuenta y correo (CA-05.1) 57ms
+ ✓ tests/fintec.test.mjs > RF-05 Panel del administrador: ver > CP-45 el resumen muestra cuentas activas y el dinero en custodia 51ms
+ ✓ tests/fintec.test.mjs > RF-05 Panel del administrador: ver > CP-46 el detalle de una cuenta muestra saldos, topes y sus movimientos 49ms
+ ✓ tests/fintec.test.mjs > RF-05 Panel del administrador: ver > CP-47 el historial global lista las operaciones de todas las cuentas 54ms
+ ✓ tests/fintec.test.mjs > RF-05 Panel del administrador: ver > CP-48 el historial se filtra por estado y por cuenta 64ms
+ ✓ tests/fintec.test.mjs > RF-03 y RN-02 Saldos y bolsillos > CP-27 el total suma disponible mas bolsillos, sin mezclarlos (CA-03.1/03.2) 49ms
+ ✓ tests/fintec.test.mjs > RF-03 y RN-02 Saldos y bolsillos > CP-28 aportar y retirar mueven dinero solo dentro de la misma cuenta 54ms
+ ✓ tests/fintec.test.mjs > RF-03 y RN-02 Saldos y bolsillos > CP-29 aportar mas que el disponible: rechaza sin cambios 51ms
+ ✓ tests/fintec.test.mjs > RF-06 Cambio de contrasena y notificacion (CA-06.2) > CP-30 cambio valido actualiza la clave y notifica con fecha y hora 53ms
+ ✓ tests/fintec.test.mjs > RF-06 Cambio de contrasena y notificacion (CA-06.2) > CP-31 contrasena actual incorrecta: no cambia nada 55ms
+ ✓ tests/fintec.test.mjs > RF-06 Cambio de contrasena y notificacion (CA-06.2) > CP-32 la nueva contrasena debe ser distinta de la actual 58ms
+
+ ✓ tests/fintec.test.mjs > RF-07 Reporte descargable (CA-07.1/07.2) > CP-33 exporta CSV con las columnas exigidas por CA-07.2 58ms
+ ✓ tests/fintec.test.mjs > RF-07 Reporte descargable (CA-07.1/07.2) > CP-34 rango sin movimientos: avisa y no descarga 56ms
+ ✓ tests/fintec.test.mjs > RF-08 Dashboard contable (CA-08.1/08.2) > CP-35 muestra ingresos, egresos y neto, y desglosa por tipo 54ms
+ ✓ tests/fintec.test.mjs > RF-08 Dashboard contable (CA-08.1/08.2) > CP-35b el rango filtra realmente los movimientos 48ms
+ ✓ tests/fintec.test.mjs > Control de acceso y sesion > CP-36 un usuario no alcanza el panel admin aunque invoque la navegacion 51ms
+ ✓ tests/fintec.test.mjs > Control de acceso y sesion > CP-36b el contable no alcanza el panel admin (RN-06) 58ms
+ ✓ tests/fintec.test.mjs > Control de acceso y sesion > CP-37 la sesion se cierra automaticamente a los 10 minutos (RNF-01) 55ms
+
+ Test Files  1 passed (1)
+      Tests  51 passed (51)
+   Start at  20:43:34
+   Duration  4.63s (transform 516ms, setup 0ms, collect 47ms, tests 2.99s, environment 895ms, prepare 176ms)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   90.09 |    82.19 |   84.21 |   90.09 |                   
+ ...e.generated.js |   90.09 |    82.19 |   84.21 |   90.09 | ...47-758,803-805 
+-------------------|---------|----------|---------|---------|-------------------

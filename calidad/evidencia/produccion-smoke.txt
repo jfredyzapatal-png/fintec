@@ -1,0 +1,39 @@
+FINTEC — Verificacion de la API desplegada en Render
+Fecha: 03/11/2026 20:42 | URL: https://fintec-api.onrender.com
+Comando: bash deploy/verificar.sh https://fintec-api.onrender.com 1023456789 maria123
+
+
+=====================================================
+ FINTEC - verificacion de la API
+=====================================================
+ URL base : https://fintec-api.onrender.com
+ Login    : 1023456789 (se usara el token en los demas endpoints)
+ Timeout  : 75s por peticion
+
+Nota: si el servicio estaba suspendido por inactividad, la
+primera peticion puede tardar cerca de un minuto. Es normal.
+
+--- Disponibilidad ---------------------------------
+ GET     /                          HTTP 404  0.323234s   raiz del servicio
+ GET     /api/health                HTTP 200  0.382245s   health check
+
+--- Autenticacion ----------------------------------
+ POST    /api/auth/login            HTTP 200       login correcto, token obtenido
+ POST    /api/auth/login            HTTP 401  0.335026s   credenciales invalidas deben dar 400/401
+
+--- Endpoints protegidos ---------------------------
+ GET     /api/cuenta/me             HTTP 200  0.614731s   datos de la cuenta
+ GET     /api/movimientos           HTTP 200  0.339806s   lista de movimientos
+ GET     /api/contable/resumen      HTTP 403  0.332332s   resumen contable (403 si el rol no es contable)
+
+--- Control de acceso (sin token) ------------------
+ GET     /api/cuenta/me             HTTP 401  0.274821s   sin token debe dar 401
+ GET     /api/movimientos           HTTP 401  0.302892s   sin token debe dar 401
+ GET     /api/contable/resumen      HTTP 401  0.326761s   sin token debe dar 401
+
+=====================================================
+ Correctos: 10   Avisos: 0   Fallos: 0
+=====================================================
+
+ Todo responde como se esperaba.
+
