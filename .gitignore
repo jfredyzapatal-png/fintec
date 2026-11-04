@@ -18,3 +18,8 @@ desktop.ini
 
 # PDF generado a partir del .docx (se entrega por el aula virtual)
 docs/Plan_de_calidad_y_pruebas.pdf
+
+# Articulo generado a partir de docs/ARTICULO_REVISTA.md y la plantilla de la revista
+docs/Articulo_FINTEC_Revista.docx
+docs/Articulo_FINTEC_Revista.pdf
+docs/articulo-marcado.txt
