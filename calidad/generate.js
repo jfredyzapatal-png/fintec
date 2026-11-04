@@ -257,7 +257,9 @@ children.push(table(
 ));
 
 children.push(h3('Artefactos de evidencia'));
-['/evidencia/vitest-output.txt — salida completa del runner con los 40 resultados y la tabla de cobertura.',
+['/evidencia/vitest-output.txt — salida completa de la batería del prototipo (51 pruebas) con la tabla de cobertura.',
+ '/evidencia/backend-output.txt — salida completa de la batería del backend (83 pruebas con node:test).',
+ '/evidencia/produccion-smoke.txt — verificación de la API desplegada en Render: 10 comprobaciones, 0 fallos.',
  '/evidencia/mutacion-output.txt — las tres ejecuciones con mutación y el caso que falla en cada una.',
  '/evidencia/coverage/ — reporte de cobertura generado por v8.',
  '/tests/fintec.test.mjs — código de las pruebas (anexo).',

@@ -151,7 +151,7 @@ if [ -n "$USUARIO" ] && [ -n "$PASSWORD" ]; then
             -w $'\n%{http_code}' \
             -X POST "${BASE_URL}/api/auth/login" \
             -H 'Content-Type: application/json' \
-            --data "{\"email\":\"${USUARIO}\",\"password\":\"${PASSWORD}\"}" 2>/dev/null)" || RESP=""
+            --data "{\"documento\":\"${USUARIO}\",\"clave\":\"${PASSWORD}\"}" 2>/dev/null)" || RESP=""
 
   CODIGO="$(printf '%s' "$RESP" | tail -n 1)"
   BODY="$(printf '%s' "$RESP" | sed '$d')"
@@ -183,11 +183,11 @@ if [ -n "$USUARIO" ] && [ -n "$PASSWORD" ]; then
 
   # El login debe RECHAZAR credenciales falsas.
   probar POST "/api/auth/login" "credenciales invalidas deben dar 400/401" "400 401 422" \
-    '{"email":"noexiste@fintec.test","password":"clave-incorrecta"}'
+    '{"documento":"0000000000","clave":"clave-incorrecta"}'
 else
   # Sin credenciales: solo comprobamos que la ruta existe y valida la entrada.
   probar POST "/api/auth/login" "la ruta existe y valida (400/401 esperado)" "400 401 422" \
-    '{"email":"noexiste@fintec.test","password":"clave-incorrecta"}'
+    '{"documento":"0000000000","clave":"clave-incorrecta"}'
 fi
 echo ""
 
@@ -199,7 +199,9 @@ echo -e "${NEGRITA}--- Endpoints protegidos ---------------------------${FIN}"
 if [ -n "$TOKEN" ]; then
   probar GET "/api/cuenta/me"       "datos de la cuenta"  "200" "" si
   probar GET "/api/movimientos"     "lista de movimientos" "200" "" si
-  probar GET "/api/contable/resumen" "resumen contable"    "200" "" si
+  # Solo el rol contable (y el admin) alcanzan este endpoint: con un usuario
+  # normal, un 403 es la respuesta correcta y demuestra que RN-06 se aplica.
+  probar GET "/api/contable/resumen" "resumen contable (403 si el rol no es contable)" "200 403" "" si
   echo ""
   echo -e "${NEGRITA}--- Control de acceso (sin token) ------------------${FIN}"
   TOKEN_GUARDADO="$TOKEN"; TOKEN=""

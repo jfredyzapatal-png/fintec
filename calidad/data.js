@@ -10,7 +10,7 @@ exports.ATRIBUTOS = [
   ['Portabilidad','Medio','Diseño responsivo desde 1280×720 y compatible con las dos últimas versiones estables de Chrome, Firefox y Edge (RNF-03, RNF-04).',
     '0 errores visuales o funcionales reportados sobre 15 pantallas verificadas en los 3 navegadores.'],
   ['Mantenibilidad','Bajo','Lógica de negocio separable y testeable, con cobertura por pruebas unitarias de caja blanca.',
-    'Cobertura de ramas ≥ 80 % sobre la lógica de dominio extraída de Fintec.html. Medido: 82,19 % de ramas, 89,41 % de sentencias y 84,21 % de funciones (Vitest 3.2.4 + v8).']
+    'Cobertura de ramas ≥ 80 % sobre la lógica de dominio extraída de Fintec.html. Medido: 82,19 % de ramas, 90,09 % de sentencias y 84,21 % de funciones con Vitest 3.2.4 y v8, más 83 pruebas de reglas de negocio en el backend con node:test.']
 ];
 
 exports.SQA = [
@@ -125,6 +125,14 @@ exports.CASOS = [
     'Se listan todas las operaciones del sistema, de todas las cuentas.','Esc.4','Aceptado'],
   ['CP-48','RF-05','Válido (filtros)','Sesión de administrador','Estado=Rechazada; luego cuenta 000-000-000','Filtrar, limpiar y volver a filtrar',
     'Solo aparecen las rechazadas; al limpiar vuelven todas; una cuenta inexistente muestra el aviso de que nada coincide.','Esc.4','Aceptado'],
+  ['CP-49','RF-09 (desembolso)','Válido','María con disponible $2.450.000','Crédito libre, monto $3.000.000, plazo 12 meses','1. Solicitar crédito. 2. Desembolsar',
+    'El disponible sube a $5.450.000, se registra un movimiento de tipo Crédito y se genera la alerta al usuario.','RF-09','Aceptado'],
+  ['CP-50','RF-09 (pago de cuota)','Válido','Crédito de $3.000.000 a 12 meses activo','—','Pagar una cuota',
+    'El saldo pendiente baja $292.461 y el disponible baja el mismo valor.','RF-09','Aceptado'],
+  ['CP-51','RF-09 (pago total)','Válido','Crédito activo con saldo pendiente','—','Pagar la totalidad',
+    'El crédito queda en estado pagado con su fecha de cierre y el disponible baja exactamente el saldo pendiente.','RF-09','Aceptado'],
+  ['CP-52','RF-09 (concurrencia)','Borde (dos peticiones a la vez)','Crédito activo','Dos solicitudes simultáneas de pago total','Lanzar ambas al tiempo',
+    'Una responde 200 y la otra 409 indicando que ya está pagado; el disponible baja una sola vez.','RF-09','Aceptado'],
 ];
 
 exports.DEFECTOS = [
@@ -153,7 +161,11 @@ exports.DEFECTOS = [
   ['D-12','CP-38 / CP-39','El selector de cuenta destino listaba a todos los clientes del sistema con su nombre y número de cuenta, exponiendo datos personales de terceros a cualquier usuario autenticado.',
     '1. Login María. 2. Abrir Transferir y desplegar el selector de destino. Esperado: solo la cuenta que el usuario escriba. Obtenido: la lista completa de clientes con nombre y número de cuenta.','Media','Corregido (campo de texto + confirmación del titular antes de enviar)'],
   ['D-13','CP-41 / CP-42 / CP-43','RF-04 se titula "Gestión de transacciones y límites" pero no existía ningún tope de transferencia implementado.',
-    'Enviar transferencias sucesivas hasta agotar el disponible. Esperado: rechazo al superar un tope. Obtenido: no hay tope alguno, todas se procesan.','Media','Corregido (topes diario y mensual configurables por usuario, con rechazo registrado)']
+    'Enviar transferencias sucesivas hasta agotar el disponible. Esperado: rechazo al superar un tope. Obtenido: no hay tope alguno, todas se procesan.','Media','Corregido (topes diario y mensual configurables por usuario, con rechazo registrado)'],
+  ['D-14','Smoke de producción','El script de verificación enviaba el login como {email, password}, pero el contrato de la API es {documento, clave}. Daba un fallo de login contra producción que no existía.',
+    'Ejecutar deploy/verificar.sh con credenciales válidas. Esperado: HTTP 200 y token. Obtenido: HTTP 400 y "credenciales rechazadas". El mismo login por curl con los campos correctos devolvía 200.','Baja','Corregido (campos del contrato en verificar.sh y verificar.ps1)'],
+  ['D-15','Smoke de producción','El script esperaba HTTP 200 en /api/contable/resumen usando un token de rol usuario. La respuesta correcta es 403, porque ese endpoint es del rol contable (RN-06).',
+    'Ejecutar el script autenticado como un cliente. Esperado según el script: 200. Obtenido: 403, que es lo correcto. El aviso era del script, no del producto.','Baja','Corregido (se aceptan 200 y 403, documentando por qué)'],
 ];
 
 exports.TRAZABILIDAD = [
@@ -175,18 +187,23 @@ exports.TRAZABILIDAD = [
 /* Resultados de la ejecucion real de la bateria (evidencia en /evidencia) */
 exports.TRAZABILIDAD.push(['RF-05 (panel admin)','CP-45, CP-46, CP-47, CP-48','—','Resumen de operación, detalle de cuenta e historial global filtrable','4/4 OK (CP-45 a CP-48)']);
 
+exports.TRAZABILIDAD.push(['RF-09 (créditos)','CP-49, CP-50, CP-51, CP-52','H-01','Solicitud, desembolso, pago de cuota, pago total y concurrencia del módulo de crédito','4/4 OK (CP-49 a CP-52)']);
+
 exports.EJECUCION = {
-  fecha: '27/10/2026 13:55',
-  entorno: 'Windows 11 · Node v24.11.0 · Vitest 3.2.4 · jsdom 26.1.0 · entorno de pruebas del equipo',
-  comando: 'npm test  /  npm run cobertura',
-  disenados: 48,
-  ejecutados: 51,
-  aprobados: 51,
+  fecha: '03/11/2026',
+  entorno: 'Windows 11 · Node v24.11.0 · Vitest 3.2.4 + jsdom 26.1.0 (prototipo) · node:test (backend)',
+  comando: 'cd calidad && npm run cobertura   |   cd api && npm test',
+  disenados: 52,
+  ejecutados: 134,
+  aprobados: 134,
   fallidos: 0,
-  cobertura: { sentencias: '89,41 %', ramas: '82,19 %', funciones: '84,21 %' },
-  nota: 'Los 44 casos disenados se ejecutaron como 47 pruebas automatizadas: CP-23, CP-35 y CP-36 se '
-      + 'desdoblaron en dos pruebas cada uno (CP-23b busqueda por correo, CP-35b filtro de rango y '
-      + 'CP-36b acceso del rol contable) para aislar la condicion verificada.'
+  cobertura: { sentencias: '90,09 %', ramas: '82,19 %', funciones: '84,21 %' },
+  nota: 'La ejecución se reparte en dos baterías sobre el mismo sistema. La del prototipo corre '
+      + '51 pruebas con Vitest y jsdom sobre la lógica extraída de producto/Fintec.html, y es la que '
+      + 'reporta la cobertura. La del backend corre 83 pruebas con node:test sobre las reglas de '
+      + 'negocio, la autorización por rol y el módulo de crédito. Los 52 casos diseñados se ejecutan '
+      + 'como más pruebas porque varios se desdoblan para aislar cada condición verificada '
+      + '(CP-23b, CP-35b y CP-36b) y porque las reglas de negocio se verifican en los dos niveles.'
 };
 
 /* Prueba de mutacion: se rompe a proposito una rama del producto y se verifica

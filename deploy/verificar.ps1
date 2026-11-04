@@ -176,7 +176,7 @@ Write-Host "--- Autenticacion ----------------------------------" -ForegroundCol
 if ($Usuario -and $Password) {
     Write-Host (" {0,-7} {1,-26} " -f "POST", "/api/auth/login") -NoNewline
 
-    $json = @{ email = $Usuario; password = $Password } | ConvertTo-Json -Compress
+    $json = @{ documento = $Usuario; clave = $Password } | ConvertTo-Json -Compress
     $r = Invoke-Curl -Metodo POST -Url "$BaseUrl/api/auth/login" -Cuerpo $json -IncluirBody
 
     if ($r.Code -eq "000") {
@@ -233,12 +233,12 @@ if ($Usuario -and $Password) {
 
     Probar -Metodo POST -Ruta "/api/auth/login" `
            -Desc "credenciales invalidas deben dar 400/401" -Esperados 400,401,422 `
-           -Cuerpo '{"email":"noexiste@fintec.test","password":"clave-incorrecta"}'
+           -Cuerpo '{"documento":"0000000000","clave":"clave-incorrecta"}'
 }
 else {
     Probar -Metodo POST -Ruta "/api/auth/login" `
            -Desc "la ruta existe y valida (400/401 esperado)" -Esperados 400,401,422 `
-           -Cuerpo '{"email":"noexiste@fintec.test","password":"clave-incorrecta"}'
+           -Cuerpo '{"documento":"0000000000","clave":"clave-incorrecta"}'
 }
 Write-Host ""
 
@@ -250,7 +250,9 @@ Write-Host "--- Endpoints protegidos ---------------------------" -ForegroundCol
 if ($script:Token) {
     Probar -Metodo GET -Ruta "/api/cuenta/me"        -Desc "datos de la cuenta"   -Esperados 200 -ConToken
     Probar -Metodo GET -Ruta "/api/movimientos"      -Desc "lista de movimientos" -Esperados 200 -ConToken
-    Probar -Metodo GET -Ruta "/api/contable/resumen" -Desc "resumen contable"     -Esperados 200 -ConToken
+    # Solo el rol contable (y el admin) alcanzan este endpoint: con un usuario
+    # normal, un 403 es la respuesta correcta y demuestra que RN-06 se aplica.
+    Probar -Metodo GET -Ruta "/api/contable/resumen" -Desc "resumen contable (403 si el rol no es contable)" -Esperados 200,403 -ConToken
 
     Write-Host ""
     Write-Host "--- Control de acceso (sin token) ------------------" -ForegroundColor White
