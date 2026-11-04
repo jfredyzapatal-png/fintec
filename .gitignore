@@ -15,3 +15,6 @@ docs/Plan_de_calidad_y_pruebas.docx
 ~$*
 Thumbs.db
 desktop.ini
+
+# PDF generado a partir del .docx (se entrega por el aula virtual)
+docs/Plan_de_calidad_y_pruebas.pdf

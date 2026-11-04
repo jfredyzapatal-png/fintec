@@ -331,6 +331,7 @@ children.push(h3('Herramientas y uso'));
 children.push(table(
   ['Herramienta', 'Modelo / versión', 'Para qué se usó'],
   [
+    ['Claude Code', 'Claude Opus 5', 'Extraccion de la logica de dominio desde Fintec.html y construccion de la bateria de pruebas con Vitest y jsdom; pruebas de mutacion; diseno y verificacion del esquema SQL contra PostgreSQL real; prueba de concurrencia sobre la base desplegada; verificacion de la API en produccion; y redaccion de este documento desde calidad/data.js.'],
     ['Cursor (Agent mode)', 'Claude 4.7 (modo thinking)', 'Revisión del código del prototipo, implementación de las correcciones derivadas de los defectos, generación del borrador de casos de prueba a partir de los 4 escenarios de la especificación y redacción del presente documento.'],
     ['OpenSpec (enfoque)', '—', 'Encuadre del formato de escenarios y de casos (Entrada / Resultado esperado / Excepción) para que los resultados esperados vengan de la especificación y no del comportamiento del código.']
   ],
@@ -344,12 +345,16 @@ children.push(table(
     ['2', '"Corrige los problemas detectados"', 'Pide acción tras el diagnóstico.', 'Separar la fase de análisis de la fase de corrección para que los cambios estén justificados.'],
     ['3', '"La idea es no cambiar nada visual"', 'Restricción explícita de alcance.', 'Preservar el diseño ya validado con el cliente y evitar que la refactorización arrastre cambios visuales no acordados.'],
     ['4', '"Revisa qué cumplimos y qué no respecto del documento de calidad"', 'Pide análisis sistemático de gaps.', 'Pasar de corrección puntual a trazabilidad completa contra la rúbrica.'],
+    ['6', '"Los casos se derivan de la especificación, no del comportamiento del código"', 'Fija de dónde sale el resultado esperado.', 'Un caso cuyo resultado esperado se copia de lo que el código ya hace solo confirma el comportamiento existente, incluidos sus errores.'],
+    ['7', '"Comprueba que las aserciones puedan fallar"', 'Exige validar la batería, no solo ejecutarla.', 'Dio lugar a las pruebas de mutación de la sección 5: romper a propósito una rama y verificar que el caso correcto la detecta.'],
     ['5', '"Entrégame un archivo con los casos de prueba y empieza a completar todo lo del documento"', 'Pide materializar el entregable.', 'Convertir el análisis en el documento académico calificable.']
   ],
   [500, 3200, 2600, 2900]
 ));
 children.push(h3('Casos propuestos por la IA que se descartaron o ajustaron'));
-['Descartado: caso de "transferencia a cuenta de otro banco". No está en el alcance del RF-04 del prototipo; la especificación cubre solo cuentas FINTEC.',
+['Ajustado: la primera ejecucion de la bateria dio 39/40. El fallo NO era del producto sino del arnes de pruebas (el Blob de jsdom no implementa .text()). Se corrigio el arnes, no el caso, porque cambiar el caso para que pase habria ocultado el problema en lugar de resolverlo.',
+ 'Descartados como defectos del producto: D-14 y D-15 parecian fallos de la API en produccion, pero al verificarlos resultaron ser expectativas mal escritas en el script de verificacion. El login funcionaba y el 403 del endpoint contable era la respuesta correcta. Se registraron igual, clasificados como defectos de la herramienta de prueba.',
+ 'Descartado: caso de "transferencia a cuenta de otro banco". No está en el alcance del RF-04 del prototipo; la especificación cubre solo cuentas FINTEC.',
  'Ajustado: el caso de "cerrar sesión al bloquear" originalmente verificaba solo transferencias. Se amplió a pagos y bolsillos porque RN-07 aplica a toda transacción.',
  'Ajustado: el botón "Devolver" originalmente no reflejaba estado; se le añadió el atributo disabled para que el caso CP-24 se verifique a nivel de UI y no solo de validación.'].forEach(t => children.push(bullet(t)));
 
