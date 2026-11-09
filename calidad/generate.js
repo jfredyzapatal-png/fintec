@@ -9,8 +9,8 @@ const {
 const D = require('./data');
 
 const FONT = 'Calibri';
-const SZ_BODY = 22;      // 11pt
-const SZ_SMALL = 20;     // 10pt
+const SZ_BODY = 24;      // 12pt - exigido por el enunciado
+const SZ_SMALL = 22;     // 11pt
 const SZ_H1 = 36;        // 18pt
 const SZ_H2 = 30;        // 15pt
 const SZ_H3 = 26;        // 13pt
