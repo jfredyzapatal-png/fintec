@@ -5,10 +5,10 @@
 **Autores**
 Castrillón Galeano, Isabela · Cordero Castillo, Samara · Rodríguez Valderrama, Juan José · Rojas Restrepo, Alison · Zapata López, Jhon Fredy
 
-Correo electrónico: *(pendiente)*
 Filiación institucional: Institución Universitaria Politécnico Grancolombiano
-No. ORCID: *(pendiente)*
 País: Colombia
+
+Los cinco autores son estudiantes del Politécnico Grancolombiano e integrantes del equipo de desarrollo del proyecto FINTEC, realizado en el curso Ingeniería de Software 1.
 
 Recepción: XX.XX.XXXX · Aceptación: XX.XX.XXXX · DOI: XXXXXX
 
