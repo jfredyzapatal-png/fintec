@@ -1322,16 +1322,90 @@ function resetRangoContable() {
 }
 
 function pintarCReportes() {
-  const d = new Date(), desde = new Date(d.getFullYear(), d.getMonth(), 1);
+  /* El boton de imprimir usa window.print(), que imprime lo que hay en
+     pantalla. Antes esta pantalla solo tenia el formulario, asi que el PDF
+     salia vacio: ahora el reporte se genera y se muestra, y entonces hay algo
+     que imprimir. */
+  const d = new Date();
+  if (!window.repRango) {
+    window.repRango = { desde: iso(new Date(d.getFullYear(), d.getMonth(), 1)), hasta: iso(d) };
+  }
+  const r = window.repRango;
   el('b-creportes').innerHTML =
     '<h2 class="d">Reporte financiero</h2>' +
-    '<div class="card">' +
-      '<label for="cr-desde">Desde</label><input id="cr-desde" name="desde" type="date" value="' + iso(desde) + '" />' +
-      '<label for="cr-hasta">Hasta</label><input id="cr-hasta" name="hasta" type="date" value="' + iso(d) + '" />' +
-      '<div class="row"><button class="btn mint" onclick="window.print()">PDF (imprimir)</button>' +
-      '<button class="btn ghost" onclick="exportarCSV(\'cr-desde\',\'cr-hasta\',true)">CSV global</button></div>' +
+    '<div class="card no-print">' +
+      '<label for="cr-desde">Desde</label><input id="cr-desde" name="desde" type="date" value="' + esc(r.desde) + '" />' +
+      '<label for="cr-hasta">Hasta</label><input id="cr-hasta" name="hasta" type="date" value="' + esc(r.hasta) + '" />' +
+      '<div class="row">' +
+        '<button class="btn mint" onclick="generarReporte()">Generar reporte</button>' +
+        '<button class="btn ghost" onclick="window.print()">PDF (imprimir)</button>' +
+        '<button class="btn ghost" onclick="exportarReporteCSV()">CSV global</button>' +
+      '</div>' +
       '<p style="color:var(--dim);font-size:13px">El CSV incluye los movimientos de todas las cuentas en el rango.</p>' +
-    '</div>';
+    '</div>' +
+    '<div id="cr-reporte"></div>';
+  generarReporte();
+}
+
+function exportarReporteCSV() { exportarCSV('cr-desde', 'cr-hasta', true); }
+
+/* Carga los totales y los movimientos del rango y los dibuja en la pantalla,
+   que es lo que despues se imprime. */
+function generarReporte() {
+  const desde = val('cr-desde') || window.repRango.desde;
+  const hasta = val('cr-hasta') || window.repRango.hasta;
+  window.repRango = { desde: desde, hasta: hasta };
+
+  const caja = el('cr-reporte');
+  if (!caja) return;
+  caja.innerHTML = '<div class="card"><p style="color:var(--dim)">Generando el reporte...</p></div>';
+
+  Promise.all([
+    API.contableResumen(desde, hasta),
+    API.contableMovimientos(desde, hasta)
+  ]).then(function (res) {
+    const resumen = res[0] || {};
+    const ingresos = num(primero(resumen, ['ingresos'], 0));
+    const egresos = num(primero(resumen, ['egresos'], 0));
+    const neto = primero(resumen, ['neto'], null) === null ? ingresos - egresos : num(resumen.neto);
+    const porTipo = comoLista(primero(resumen, ['porTipo'], []), ['porTipo']).map(function (t) {
+      return {
+        tipo: primero(t, ['tipo'], ''),
+        ops: num(primero(t, ['ops', 'operaciones', 'cantidad', 'conteo'], 0)),
+        monto: num(primero(t, ['monto', 'valor', 'total'], 0))
+      };
+    });
+    const movs = comoLista(res[1], ['movimientos', 'datos']).map(normMov);
+
+    caja.innerHTML =
+      '<div class="card">' +
+        '<h3>Periodo</h3>' +
+        '<p style="color:var(--dim)">Del ' + esc(desde) + ' al ' + esc(hasta) +
+          ' · ' + movs.length + ' movimiento' + (movs.length === 1 ? '' : 's') + ' en el rango</p>' +
+      '</div>' +
+      '<div class="grid" style="margin-top:12px">' +
+        '<div class="card"><div style="color:var(--dim)">Ingresos (acreditaciones)</div>' +
+          '<div class="d" style="font-size:30px">' + fmt(ingresos) + '</div></div>' +
+        '<div class="card"><div style="color:var(--dim)">Egresos (pagos a convenios)</div>' +
+          '<div class="d" style="font-size:30px">' + fmt(egresos) + '</div></div>' +
+        '<div class="card" style="border-color:#1757D8"><div style="color:var(--blue)">Saldo neto movilizado</div>' +
+          '<div class="d" style="font-size:30px">' + fmt(neto) + '</div></div>' +
+      '</div>' +
+      '<div class="card" style="margin-top:12px"><h3>Desglose por tipo</h3>' +
+        '<table><thead><tr><th>Tipo</th><th>Ops</th><th>Monto</th></tr></thead><tbody>' +
+        (porTipo.map(function (t) {
+          return '<tr><td>' + esc(t.tipo) + '</td><td>' + t.ops + '</td><td>' + fmt(t.monto) + '</td></tr>';
+        }).join('') || '<tr><td colspan="3">Sin movimientos completados en el rango.</td></tr>') +
+        '</tbody></table></div>' +
+      '<div class="card" style="margin-top:12px"><h3>Movimientos del periodo</h3>' +
+        '<table><thead><tr><th>ID</th><th>Fecha</th><th>Tipo</th><th>Origen</th><th>Destino</th>' +
+        '<th>Valor</th><th>Estado</th></tr></thead><tbody>' +
+        (movs.map(function (m) { return filaMov(m); }).join('') ||
+          '<tr><td colspan="7">Ningun movimiento en el rango seleccionado.</td></tr>') +
+        '</tbody></table></div>';
+  }).catch(function (e) {
+    caja.innerHTML = '<div class="card"><p class="err on">' + esc(mensajeError(e)) + '</p></div>';
+  });
 }
 
 /* ---------- navegacion ---------- */

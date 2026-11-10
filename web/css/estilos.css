@@ -122,3 +122,18 @@ table{width:100%;border-collapse:collapse;font-size:14px} th,td{padding:10px 6px
 @media(max-width:420px){
   .topnav nav,header.app nav{grid-template-columns:1fr}
 }
+
+/* ---- Impresion del reporte financiero ----
+   El boton PDF usa window.print(), que imprime lo que hay en pantalla.
+   Aqui se ocultan los elementos de navegacion y los controles para que la
+   hoja salga solo con el reporte. */
+@media print {
+  .no-print, .proto, .toast, header.app, .topnav { display: none !important; }
+  body { background: #fff; }
+  .screen.active { min-height: auto; }
+  .wrap { padding: 0; max-width: none; }
+  .card { border: 1px solid #ccc; break-inside: avoid; }
+  .grid { grid-template-columns: repeat(3, 1fr); }
+  table { font-size: 11px; }
+  a[href]:after { content: ""; }
+}
